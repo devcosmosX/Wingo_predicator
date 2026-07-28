@@ -2,520 +2,851 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>WinGo 30S Predictor 10X AI Pro</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WinGo 30S AI Predictor Pro</title>
+<meta name="description" content="Advanced multi-model AI prediction engine for WinGo 30S with real-time analytics">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
+/* ═══════════════════════════════════════════════════════
+   DESIGN SYSTEM — Premium Dark Analytics Theme
+   ═══════════════════════════════════════════════════════ */
 :root {
-    --bg-dark: #060713;
-    --card-bg: rgba(14, 17, 36, 0.85);
-    --card-border: rgba(255, 255, 255, 0.09);
-    --neon-green: #00ff88;
-    --neon-red: #ff3366;
-    --neon-violet: #a855f7;
-    --neon-cyan: #00d4ff;
-    --neon-gold: #ffd700;
-    --text-primary: #f0f2fe;
-    --text-muted: #8c90b5;
+  /* Surfaces */
+  --bg-primary: #0a0b14;
+  --bg-secondary: #10121f;
+  --bg-card: rgba(16, 19, 38, 0.75);
+  --bg-card-hover: rgba(22, 25, 48, 0.85);
+  --bg-elevated: rgba(24, 28, 52, 0.9);
+  --border: rgba(255, 255, 255, 0.06);
+  --border-accent: rgba(255, 255, 255, 0.12);
+
+  /* Text */
+  --text-primary: #e8eaf6;
+  --text-secondary: #8b91b8;
+  --text-muted: #5c6190;
+
+  /* Accents — muted neon, not eye-burning */
+  --accent-green: #34d399;
+  --accent-red: #f87171;
+  --accent-violet: #a78bfa;
+  --accent-cyan: #22d3ee;
+  --accent-gold: #fbbf24;
+  --accent-blue: #60a5fa;
+
+  /* Glows */
+  --glow-green: rgba(52, 211, 153, 0.25);
+  --glow-red: rgba(248, 113, 113, 0.25);
+  --glow-violet: rgba(167, 139, 250, 0.25);
+  --glow-cyan: rgba(34, 211, 238, 0.2);
+
+  /* Radius */
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+
+  /* Spacing */
+  --gap: 16px;
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
-body { background: var(--bg-dark); color: var(--text-primary); min-height: 100vh; padding-bottom: 40px; overflow-x: hidden; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 
-/* Ambient Lighting & Glow FX */
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+/* Ambient background glow */
 body::before {
-    content: ''; position: fixed; top: -10%; left: 50%; transform: translateX(-50%);
-    width: 700px; height: 700px; background: radial-gradient(circle, rgba(168, 85, 247, 0.18) 0%, rgba(0,212,255,0.08) 50%, rgba(0,0,0,0) 70%);
-    pointer-events: none; z-index: 0;
+  content: '';
+  position: fixed; top: -200px; left: 50%; transform: translateX(-50%);
+  width: 900px; height: 600px;
+  background: radial-gradient(ellipse at center, rgba(167,139,250,0.06) 0%, rgba(34,211,238,0.03) 40%, transparent 70%);
+  pointer-events: none; z-index: 0;
 }
 
-.container { max-width: 1150px; margin: 0 auto; padding: 16px; position: relative; z-index: 1; }
+.container { max-width: 1180px; margin: 0 auto; padding: 20px; position: relative; z-index: 1; }
 
-/* Header */
-.header { text-align: center; padding: 24px 0 16px; }
-.header h1 { font-family: 'Outfit', sans-serif; font-size: 2.3rem; font-weight: 900; background: linear-gradient(135deg, #00d4ff, #a855f7, #ff3366); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.5px; }
-.header p { color: var(--text-muted); font-size: 0.92rem; margin-top: 6px; font-weight: 500; }
+/* ═══ Typography ═══ */
+.font-display { font-family: 'Outfit', sans-serif; }
+.font-mono { font-family: 'JetBrains Mono', monospace; }
 
-/* Status Bar Grid (Responsive) */
-.status-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin: 16px 0 24px; }
-@media (max-width: 900px) { .status-grid { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 500px) { .status-grid { grid-template-columns: repeat(2, 1fr); } }
+/* ═══ Header ═══ */
+.header { text-align: center; padding: 28px 0 20px; }
+.header h1 {
+  font-family: 'Outfit', sans-serif; font-size: 2rem; font-weight: 800;
+  background: linear-gradient(135deg, #22d3ee 0%, #a78bfa 50%, #f87171 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  letter-spacing: -0.5px;
+}
+.header .subtitle { color: var(--text-secondary); font-size: 0.85rem; margin-top: 6px; font-weight: 500; }
 
-.stat-card { background: var(--card-bg); backdrop-filter: blur(20px); border: 1px solid var(--card-border); border-radius: 16px; padding: 14px 10px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
-.stat-card .label { font-size: 0.68rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.8px; }
-.stat-card .value { font-family: 'Outfit', sans-serif; font-size: 1.4rem; font-weight: 800; margin-top: 4px; }
-.value.green { color: var(--neon-green); text-shadow: 0 0 12px rgba(0, 255, 136, 0.4); }
-.value.gold { color: var(--neon-gold); text-shadow: 0 0 12px rgba(255, 215, 0, 0.4); }
-.value.cyan { color: var(--neon-cyan); text-shadow: 0 0 12px rgba(0, 212, 255, 0.4); }
-.value.pink { color: var(--neon-red); text-shadow: 0 0 12px rgba(255, 51, 102, 0.4); }
-.value.purple { color: var(--neon-violet); text-shadow: 0 0 12px rgba(168, 85, 247, 0.4); }
+/* ═══ Cards ═══ */
+.card {
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.card:hover {
+  border-color: var(--border-accent);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+.card-title {
+  font-family: 'Outfit', sans-serif; font-size: 0.82rem;
+  text-transform: uppercase; letter-spacing: 1.5px;
+  color: var(--text-secondary); font-weight: 700; margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px;
+}
 
-/* Hero Live Prediction Card */
-.prediction-card { background: linear-gradient(145deg, rgba(20, 24, 55, 0.92), rgba(12, 15, 35, 0.92)); backdrop-filter: blur(24px); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 24px; padding: 28px 20px; text-align: center; margin-bottom: 24px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
-.prediction-card .card-title { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 700; }
+/* ═══ Main Grid Layout ═══ */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: var(--gap);
+  margin-bottom: var(--gap);
+}
+@media (max-width: 900px) {
+  .main-grid { grid-template-columns: 1fr; }
+}
 
-.prediction-card .digit { font-family: 'Outfit', sans-serif; font-size: 5.8rem; font-weight: 900; line-height: 1; margin: 14px 0 8px; filter: drop-shadow(0 0 24px currentColor); }
-.prediction-card .digit.green { color: var(--neon-green); }
-.prediction-card .digit.red { color: var(--neon-red); }
-.prediction-card .digit.violet { color: var(--neon-violet); }
-.prediction-card .digit.pulse { animation: pulseAnim 2s infinite ease-in-out; }
-@keyframes pulseAnim { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.04); } }
+/* ═══ Status Strip ═══ */
+.status-strip {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px; margin-bottom: var(--gap);
+}
+.stat-item {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding: 14px; text-align: center;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+.stat-item:hover { transform: translateY(-2px); border-color: var(--border-accent); }
+.stat-item .stat-label {
+  font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px;
+  color: var(--text-muted); font-weight: 700;
+}
+.stat-item .stat-value {
+  font-family: 'Outfit', sans-serif; font-size: 1.35rem;
+  font-weight: 800; margin-top: 4px;
+}
 
-/* Multi-Target Visual Badges */
-.target-badges { display: flex; justify-content: center; gap: 12px; margin: 14px 0 18px; flex-wrap: wrap; }
-.target-pill { padding: 8px 22px; border-radius: 30px; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1rem; border: 1.5px solid transparent; letter-spacing: 0.8px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-.target-pill.size-big { background: rgba(0, 212, 255, 0.12); color: var(--neon-cyan); border-color: var(--neon-cyan); }
-.target-pill.size-small { background: rgba(255, 215, 0, 0.12); color: var(--neon-gold); border-color: var(--neon-gold); }
-.target-pill.color-green { background: rgba(0, 255, 136, 0.12); color: var(--neon-green); border-color: var(--neon-green); }
-.target-pill.color-red { background: rgba(255, 51, 102, 0.12); color: var(--neon-red); border-color: var(--neon-red); }
-.target-pill.color-violet { background: rgba(168, 85, 247, 0.12); color: var(--neon-violet); border-color: var(--neon-violet); }
+/* ═══ Hero Prediction Section ═══ */
+.hero-section { display: flex; flex-direction: column; gap: var(--gap); }
 
-.period-info { font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; }
-.meta-chips { display: flex; justify-content: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
-.chip { background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); padding: 5px 14px; border-radius: 20px; font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
+.prediction-hero {
+  text-align: center; padding: 30px 20px;
+  background: linear-gradient(145deg, rgba(16, 20, 48, 0.9), rgba(10, 12, 30, 0.95));
+  border: 1px solid rgba(167, 139, 250, 0.15);
+  border-radius: var(--radius-lg);
+}
 
-.confidence-track { max-width: 380px; margin: 0 auto 20px; background: rgba(255,255,255,0.06); height: 10px; border-radius: 10px; overflow: hidden; border: 1px solid var(--card-border); }
-.confidence-fill { height: 100%; background: linear-gradient(90deg, #ff3366, #ffd700, #00ff88); border-radius: 10px; transition: width 0.6s ease; }
+.prediction-hero .hero-label {
+  font-size: 0.72rem; text-transform: uppercase; letter-spacing: 2px;
+  color: var(--text-secondary); font-weight: 700;
+}
 
-/* 🧠 AI Thinking Power & Model Votes Breakdown Widget */
-.thinking-widget { background: rgba(10, 12, 30, 0.7); border: 1px solid var(--card-border); border-radius: 18px; padding: 18px; margin: 20px 0 24px; text-align: left; }
-.thinking-widget h4 { font-family: 'Outfit', sans-serif; font-size: 0.88rem; text-transform: uppercase; color: var(--neon-cyan); letter-spacing: 1px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.hero-digit {
+  font-family: 'Outfit', sans-serif; font-size: 6rem; font-weight: 900;
+  line-height: 1.1; margin: 12px 0;
+  transition: color 0.4s ease;
+}
+.hero-digit.anim { animation: digitPulse 2.5s ease-in-out infinite; }
+@keyframes digitPulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.03); opacity: 0.9; } }
 
-.vote-bars { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-@media (max-width: 700px) { .vote-bars { grid-template-columns: repeat(2, 1fr); } }
+.hero-digit.c-green { color: var(--accent-green); text-shadow: 0 0 40px var(--glow-green); }
+.hero-digit.c-red { color: var(--accent-red); text-shadow: 0 0 40px var(--glow-red); }
+.hero-digit.c-violet { color: var(--accent-violet); text-shadow: 0 0 40px var(--glow-violet); }
 
-.vote-item { background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); border-radius: 12px; padding: 10px 12px; text-align: center; }
-.vote-item .v-name { font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; }
-.vote-item .v-val { font-family: 'Outfit', sans-serif; font-size: 1.1rem; font-weight: 800; color: var(--neon-gold); margin-top: 2px; }
+/* Multi-target pills */
+.target-row { display: flex; justify-content: center; gap: 10px; margin: 14px 0 16px; flex-wrap: wrap; }
+.pill {
+  padding: 7px 20px; border-radius: 24px;
+  font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 0.88rem;
+  border: 1.5px solid; letter-spacing: 0.5px;
+  transition: transform 0.2s ease;
+}
+.pill:hover { transform: scale(1.05); }
+.pill.sz-big { background: rgba(34, 211, 238, 0.08); color: var(--accent-cyan); border-color: rgba(34, 211, 238, 0.35); }
+.pill.sz-small { background: rgba(251, 191, 36, 0.08); color: var(--accent-gold); border-color: rgba(251, 191, 36, 0.35); }
+.pill.cl-green { background: rgba(52, 211, 153, 0.08); color: var(--accent-green); border-color: rgba(52, 211, 153, 0.35); }
+.pill.cl-red { background: rgba(248, 113, 113, 0.08); color: var(--accent-red); border-color: rgba(248, 113, 113, 0.35); }
+.pill.cl-violet { background: rgba(167, 139, 250, 0.08); color: var(--accent-violet); border-color: rgba(167, 139, 250, 0.35); }
 
-/* 📊 Hot & Cold Digit Heatmap Grid (Digits 0-9) */
-.heatmap-card { background: var(--card-bg); backdrop-filter: blur(20px); border: 1px solid var(--card-border); border-radius: 24px; padding: 22px; margin-bottom: 24px; box-shadow: 0 12px 32px rgba(0,0,0,0.3); }
-.heatmap-card h3 { font-family: 'Outfit', sans-serif; font-size: 1.15rem; font-weight: 700; margin-bottom: 16px; color: var(--text-primary); display: flex; align-items: center; justify-content: space-between; }
+/* Meta chips */
+.meta-row { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.meta-chip {
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  padding: 4px 12px; border-radius: 16px; font-size: 0.75rem;
+  color: var(--text-secondary); font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+}
 
-.digit-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 8px; }
-@media (max-width: 800px) { .digit-grid { grid-template-columns: repeat(5, 1fr); } }
+/* Confidence bar */
+.conf-track { max-width: 340px; margin: 0 auto 16px; height: 6px; background: rgba(255,255,255,0.06); border-radius: 6px; overflow: hidden; }
+.conf-fill { height: 100%; border-radius: 6px; transition: width 0.6s ease; background: linear-gradient(90deg, var(--accent-red), var(--accent-gold), var(--accent-green)); }
 
-.digit-box { background: rgba(10, 12, 28, 0.8); border: 1px solid var(--card-border); border-radius: 14px; padding: 12px 6px; text-align: center; transition: transform 0.2s; }
-.digit-box:hover { transform: translateY(-2px); border-color: var(--neon-violet); }
-.digit-box .num { font-family: 'Outfit', sans-serif; font-size: 1.4rem; font-weight: 900; }
-.digit-box .gap-label { font-size: 0.68rem; color: var(--text-muted); font-weight: 600; margin-top: 4px; }
-.digit-box.hot { border-color: var(--neon-red); background: rgba(255, 51, 102, 0.1); }
-.digit-box.cold { border-color: var(--neon-cyan); background: rgba(0, 212, 255, 0.1); }
+/* ═══ Sidebar Panels ═══ */
+.sidebar { display: flex; flex-direction: column; gap: var(--gap); }
 
-/* Input Bar */
-.input-bar { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
-.input-bar input { padding: 10px 18px; border-radius: 12px; border: 1px solid var(--card-border); background: rgba(10, 12, 28, 0.8); color: #fff; font-size: 0.95rem; width: 190px; font-weight: 600; text-align: center; }
-.input-bar input:focus { outline: none; border-color: var(--neon-violet); box-shadow: 0 0 12px rgba(168, 85, 247, 0.3); }
-.input-bar button { padding: 10px 24px; border-radius: 12px; border: none; background: linear-gradient(135deg, #a855f7, #00d4ff); color: #fff; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: transform 0.2s, opacity 0.2s; }
-.input-bar button:hover { opacity: 0.9; transform: translateY(-1px); }
+/* 30s Countdown Ring */
+.countdown-panel { text-align: center; padding: 24px 20px; }
+.countdown-ring-wrap { position: relative; width: 140px; height: 140px; margin: 0 auto 12px; }
+.countdown-ring-wrap svg { transform: rotate(-90deg); }
+.countdown-ring-bg { fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 6; }
+.countdown-ring-fg { fill: none; stroke: var(--accent-cyan); stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset 0.4s ease, stroke 0.3s ease; }
+.countdown-ring-fg.urgent { stroke: var(--accent-red); }
+.countdown-value {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  font-family: 'Outfit', sans-serif; font-size: 2.8rem; font-weight: 900;
+  color: var(--accent-cyan); transition: color 0.3s ease;
+}
+.countdown-value.urgent { color: var(--accent-red); }
+.countdown-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
 
-/* History Section */
-.history-card { background: var(--card-bg); backdrop-filter: blur(20px); border: 1px solid var(--card-border); border-radius: 24px; padding: 22px; box-shadow: 0 12px 32px rgba(0,0,0,0.3); }
-.history-card h3 { font-family: 'Outfit', sans-serif; font-size: 1.15rem; font-weight: 700; margin-bottom: 16px; color: var(--text-primary); }
+/* Model Votes Panel */
+.votes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.vote-card {
+  background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 10px; text-align: center;
+}
+.vote-card .v-label { font-size: 0.62rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+.vote-card .v-value { font-family: 'Outfit', sans-serif; font-size: 1.15rem; font-weight: 800; color: var(--accent-gold); margin-top: 2px; }
 
-.table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-table { width: 100%; border-collapse: collapse; min-width: 650px; }
-th { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--card-border); font-size: 0.72rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 1px; }
-td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.9rem; }
+/* Win Streak */
+.streak-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: 20px; font-weight: 700; font-size: 0.85rem;
+  background: rgba(52, 211, 153, 0.1); border: 1px solid rgba(52, 211, 153, 0.25);
+  color: var(--accent-green);
+  font-family: 'Outfit', sans-serif;
+}
+
+/* Manual Predict Input */
+.predict-input-row { display: flex; gap: 8px; margin-top: 12px; }
+.predict-input-row input {
+  flex: 1; padding: 10px 14px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: rgba(10, 12, 26, 0.8);
+  color: #fff; font-size: 0.9rem; font-weight: 600; text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+}
+.predict-input-row input:focus { outline: none; border-color: var(--accent-violet); box-shadow: 0 0 12px var(--glow-violet); }
+.predict-input-row button {
+  padding: 10px 20px; border-radius: var(--radius-sm); border: none;
+  background: linear-gradient(135deg, var(--accent-violet), var(--accent-cyan));
+  color: #fff; font-weight: 700; font-size: 0.85rem; cursor: pointer;
+  font-family: 'Outfit', sans-serif; letter-spacing: 0.5px;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.predict-input-row button:hover { transform: translateY(-1px); opacity: 0.92; }
+
+/* ═══ Heatmap Grid ═══ */
+.heatmap-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 8px; }
+@media (max-width: 700px) { .heatmap-grid { grid-template-columns: repeat(5, 1fr); } }
+.heat-cell {
+  background: rgba(10, 12, 30, 0.6); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 12px 4px; text-align: center;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+.heat-cell:hover { transform: translateY(-2px); }
+.heat-cell .h-digit { font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 900; }
+.heat-cell .h-gap { font-size: 0.68rem; color: var(--text-muted); font-weight: 600; margin-top: 3px; }
+.heat-cell .h-freq { font-size: 0.6rem; color: var(--text-muted); font-weight: 500; }
+.heat-cell.hot { border-color: rgba(248, 113, 113, 0.4); background: rgba(248, 113, 113, 0.06); }
+.heat-cell.cold { border-color: rgba(34, 211, 238, 0.4); background: rgba(34, 211, 238, 0.06); }
+.h-digit.c-green { color: var(--accent-green); }
+.h-digit.c-red { color: var(--accent-red); }
+.h-digit.c-violet { color: var(--accent-violet); }
+
+/* ═══ Accuracy Sparkline ═══ */
+.sparkline-row { display: flex; gap: var(--gap); margin-bottom: var(--gap); }
+@media (max-width: 700px) { .sparkline-row { flex-direction: column; } }
+.sparkline-card { flex: 1; }
+.sparkline-card .spark-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.sparkline-card .spark-val { font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 800; }
+.sparkline-card svg { width: 100%; height: 40px; }
+.spark-line { fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.spark-area { opacity: 0.15; }
+
+/* ═══ History Table ═══ */
+.table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { width: 100%; border-collapse: collapse; min-width: 700px; }
+th {
+  text-align: left; padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px;
+  color: var(--text-muted); font-weight: 700;
+}
+td {
+  padding: 11px 12px; border-bottom: 1px solid rgba(255,255,255,0.03);
+  font-size: 0.85rem; transition: background 0.2s;
+}
 tr:hover td { background: rgba(255,255,255,0.02); }
 
-.digit-circle { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.95rem; }
-.digit-circle.green { background: rgba(0, 255, 136, 0.15); color: var(--neon-green); border: 1px solid var(--neon-green); }
-.digit-circle.red { background: rgba(255, 51, 102, 0.15); color: var(--neon-red); border: 1px solid var(--neon-red); }
-.digit-circle.violet { background: rgba(168, 85, 247, 0.15); color: var(--neon-violet); border: 1px solid var(--neon-violet); }
+.digit-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 50%;
+  font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.9rem;
+  border: 1.5px solid;
+}
+.digit-badge.c-green { background: rgba(52,211,153,0.1); color: var(--accent-green); border-color: var(--accent-green); }
+.digit-badge.c-red { background: rgba(248,113,113,0.1); color: var(--accent-red); border-color: var(--accent-red); }
+.digit-badge.c-violet { background: rgba(167,139,250,0.1); color: var(--accent-violet); border-color: var(--accent-violet); }
 
-.badge-match { color: var(--neon-green); font-weight: 700; }
-.badge-miss { color: var(--neon-red); font-weight: 700; }
-.dim-text { color: var(--text-muted); }
+.match { color: var(--accent-green); font-weight: 700; }
+.miss { color: var(--accent-red); font-weight: 700; }
+.na-text { color: var(--text-muted); }
 
-/* Color Trading Pagination Bar */
-.pagination-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; padding: 12px 16px; background: rgba(10, 12, 28, 0.6); border-radius: 14px; border: 1px solid var(--card-border); flex-wrap: wrap; gap: 10px; }
-.page-btn { padding: 8px 18px; border-radius: 10px; border: 1px solid var(--neon-violet); background: rgba(168, 85, 247, 0.15); color: #fff; font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
-.page-btn:hover:not(:disabled) { background: var(--neon-violet); color: #fff; box-shadow: 0 0 12px rgba(168, 85, 247, 0.4); }
-.page-btn:disabled { opacity: 0.3; cursor: not-allowed; border-color: var(--card-border); background: transparent; }
-.page-text { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; }
+/* Pagination */
+.pagination { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding: 10px 14px; background: rgba(10, 12, 28, 0.5); border-radius: var(--radius-sm); border: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+.pg-btn {
+  padding: 7px 16px; border-radius: 8px;
+  border: 1px solid rgba(167, 139, 250, 0.3);
+  background: rgba(167, 139, 250, 0.08); color: #fff;
+  font-weight: 700; font-size: 0.8rem; cursor: pointer;
+  font-family: 'Outfit', sans-serif;
+  transition: all 0.2s ease;
+}
+.pg-btn:hover:not(:disabled) { background: var(--accent-violet); box-shadow: 0 0 12px var(--glow-violet); }
+.pg-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+.pg-info { font-size: 0.8rem; color: var(--text-secondary); font-weight: 600; }
 
-/* Live Pulsing Dot */
-.live-badge { display: inline-flex; align-items: center; gap: 6px; }
-.live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--neon-green); box-shadow: 0 0 8px var(--neon-green); animation: blink 1.2s infinite; }
-@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+/* ═══ Live Dot ═══ */
+.live-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); animation: blink 1.3s infinite; }
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
 
-/* Mobile Optimizations */
+/* ═══ Skeleton Loader ═══ */
+.skeleton { background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 6px; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* ═══ Toast Notifications ═══ */
+.toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+.toast {
+  padding: 12px 20px; border-radius: var(--radius-sm);
+  background: var(--bg-elevated); backdrop-filter: blur(20px);
+  border: 1px solid var(--border-accent);
+  color: var(--text-primary); font-size: 0.85rem; font-weight: 600;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  animation: toastIn 0.3s ease;
+  max-width: 340px;
+}
+.toast.success { border-left: 3px solid var(--accent-green); }
+.toast.error { border-left: 3px solid var(--accent-red); }
+.toast.info { border-left: 3px solid var(--accent-cyan); }
+@keyframes toastIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+
+/* ═══ Responsive ═══ */
 @media (max-width: 600px) {
-    .header h1 { font-size: 1.7rem; }
-    .prediction-card .digit { font-size: 4.2rem; }
-    .prediction-card { padding: 20px 14px; }
-    .target-pill { font-size: 0.9rem; padding: 6px 16px; }
-    .pagination-bar { justify-content: center; }
+  .header h1 { font-size: 1.5rem; }
+  .hero-digit { font-size: 4.5rem; }
+  .prediction-hero { padding: 20px 14px; }
+  .container { padding: 12px; }
 }
 </style>
 </head>
 <body>
+
+<div class="toast-container" id="toastContainer"></div>
+
 <div class="container">
 
-    <!-- Header -->
-    <div class="header">
-        <h1>⚡ WinGo 30S Predictor 10X AI</h1>
-        <p>Deep Learning Attention + LightGBM + Q-Reinforcement Intelligence</p>
+  <!-- Header -->
+  <header class="header">
+    <h1>WinGo 30S AI Predictor</h1>
+    <p class="subtitle">Markov Attention &middot; LightGBM &middot; Double Q-Learning &middot; Full-History Analysis</p>
+  </header>
+
+  <!-- Status Strip -->
+  <div class="status-strip">
+    <div class="stat-item">
+      <div class="stat-label">Engine</div>
+      <div class="stat-value" style="color:var(--accent-green);font-size:1rem;" id="liveStatus"><span class="live-dot"></span> Live</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Records</div>
+      <div class="stat-value" style="color:var(--accent-gold);" id="totalRecordsDisplay"><span class="skeleton" style="display:inline-block;width:40px;height:20px;"></span></div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Digit Acc</div>
+      <div class="stat-value" style="color:var(--accent-cyan);" id="digitAccDisplay"><span class="skeleton" style="display:inline-block;width:40px;height:20px;"></span></div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Size Acc</div>
+      <div class="stat-value" style="color:var(--accent-green);" id="sizeAccDisplay"><span class="skeleton" style="display:inline-block;width:40px;height:20px;"></span></div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Color Acc</div>
+      <div class="stat-value" style="color:var(--accent-violet);" id="colorAccDisplay"><span class="skeleton" style="display:inline-block;width:40px;height:20px;"></span></div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Q-States</div>
+      <div class="stat-value" style="color:var(--accent-blue);" id="qTableSize"><span class="skeleton" style="display:inline-block;width:40px;height:20px;"></span></div>
+    </div>
+  </div>
+
+  <!-- Main Grid: Prediction + Sidebar -->
+  <div class="main-grid">
+
+    <!-- Left: Hero Prediction -->
+    <div class="hero-section">
+      <div class="prediction-hero card">
+        <div class="hero-label">Next Draw Prediction</div>
+        <div class="hero-digit anim c-violet" id="predictedDigit">--</div>
+
+        <div class="target-row">
+          <span class="pill sz-big" id="sizePill">SIZE: --</span>
+          <span class="pill cl-green" id="colorPill">COLOR: --</span>
+        </div>
+
+        <div class="meta-row">
+          <span class="meta-chip" id="periodChip">Period: ---</span>
+          <span class="meta-chip" id="modeChip">Mode: --</span>
+          <span class="meta-chip" id="confChip">Conf: --%</span>
+          <span class="meta-chip" id="last5Chip">Last 5: --</span>
+        </div>
+
+        <div class="conf-track">
+          <div class="conf-fill" id="confFill" style="width:0%"></div>
+        </div>
+
+        <!-- Win Streak -->
+        <div style="text-align:center;margin-bottom:12px;">
+          <span class="streak-badge" id="streakBadge" style="display:none;">&#x1F525; 0 Win Streak</span>
+        </div>
+
+        <!-- Model Votes -->
+        <div class="card-title">Model Consensus</div>
+        <div class="votes-grid">
+          <div class="vote-card"><div class="v-label">LightGBM</div><div class="v-value" id="vLGBM">--%</div></div>
+          <div class="vote-card"><div class="v-label">Deep Markov</div><div class="v-value" id="vDeep">--%</div></div>
+          <div class="vote-card"><div class="v-label">Q-Agent</div><div class="v-value" id="vQ">--%</div></div>
+          <div class="vote-card"><div class="v-label">Ensemble</div><div class="v-value" id="vEnsemble">--%</div></div>
+        </div>
+
+        <!-- Manual Predict -->
+        <div class="predict-input-row">
+          <input type="number" id="periodInput" placeholder="Period last 3 digits" min="0" max="999">
+          <button onclick="manualPredict()">Predict</button>
+        </div>
+      </div>
     </div>
 
-    <!-- Status Bar Grid -->
-    <div class="status-grid">
-        <div class="stat-card">
-            <div class="label">Engine Status</div>
-            <div class="value cyan live-badge" id="liveStatus"><span class="live-dot"></span>Live</div>
+    <!-- Right Sidebar -->
+    <div class="sidebar">
+
+      <!-- 30s Countdown Timer -->
+      <div class="card countdown-panel">
+        <div class="card-title">&#x23F1;&#xFE0F; Draw Countdown</div>
+        <div class="countdown-ring-wrap">
+          <svg width="140" height="140" viewBox="0 0 140 140">
+            <circle class="countdown-ring-bg" cx="70" cy="70" r="60" />
+            <circle class="countdown-ring-fg" id="countdownRing" cx="70" cy="70" r="60"
+              stroke-dasharray="376.99" stroke-dashoffset="0" />
+          </svg>
+          <div class="countdown-value" id="countdownValue">30</div>
         </div>
-        <div class="stat-card">
-            <div class="label">Total Records</div>
-            <div class="value gold" id="totalRecordsDisplay">0</div>
-        </div>
-        <div class="stat-card">
-            <div class="label">🎯 Digit Acc</div>
-            <div class="value green" id="digitAccDisplay">0%</div>
-        </div>
-        <div class="stat-card">
-            <div class="label">📐 Size Acc</div>
-            <div class="value gold" id="sizeAccDisplay">0%</div>
-        </div>
-        <div class="stat-card">
-            <div class="label">🎨 Color Acc</div>
-            <div class="value pink" id="colorAccDisplay">0%</div>
-        </div>
-        <div class="stat-card">
-            <div class="label">Q-States</div>
-            <div class="value purple" id="qTableSize">0</div>
-        </div>
+        <div class="countdown-label">Seconds to Next Draw</div>
+      </div>
+
+      <!-- Copy Prediction Button -->
+      <div class="card" style="text-align:center;padding:14px;">
+        <button onclick="copyPrediction()" style="
+          width:100%;padding:10px;border:none;border-radius:var(--radius-sm);
+          background:linear-gradient(135deg,var(--accent-green),var(--accent-cyan));
+          color:#000;font-weight:700;font-size:0.85rem;cursor:pointer;
+          font-family:'Outfit',sans-serif;letter-spacing:0.5px;
+          transition:transform 0.2s;">
+          &#x1F4CB; Copy Prediction
+        </button>
+      </div>
     </div>
 
-    <!-- Hero Prediction Card -->
-    <div class="prediction-card">
-        <div class="card-title">Multi-Target Prediction for Next Draw</div>
-        <div class="digit pulse violet" id="predictedDigit">--</div>
-        
-        <!-- Multi-Target Badges -->
-        <div class="target-badges">
-            <span class="target-pill size-big" id="predictedSizeBadge">SIZE: --</span>
-            <span class="target-pill color-green" id="predictedColorBadge">COLOR: --</span>
-        </div>
+  </div>
 
-        <div class="period-info" id="periodDisplay">Syncing with Live WinGo Engine...</div>
-        <div class="meta-chips">
-            <span class="chip" id="modeDisplay">Mode: --</span>
-            <span class="chip" id="confDisplay">Confidence: --%</span>
-            <span class="chip" id="last5Display">Last 5: --</span>
-        </div>
-        <div class="confidence-track">
-            <div class="confidence-fill" id="confidenceFill" style="width:0%"></div>
-        </div>
-
-        <!-- 🧠 AI Thinking Power & Vote Breakdown Widget -->
-        <div class="thinking-widget">
-            <h4>🧠 10X AI Ensemble Consensus Votes</h4>
-            <div class="vote-bars">
-                <div class="vote-item">
-                    <div class="v-name">LightGBM ML</div>
-                    <div class="v-val" id="vLightGBM">--%</div>
-                </div>
-                <div class="vote-item">
-                    <div class="v-name">Deep Attention</div>
-                    <div class="v-val" id="vDeep">--%</div>
-                </div>
-                <div class="vote-item">
-                    <div class="v-name">Q-Agent RL</div>
-                    <div class="v-val" id="vQAgent">--%</div>
-                </div>
-                <div class="vote-item">
-                    <div class="v-name">Period Modulo</div>
-                    <div class="v-val" id="vPeriod">--%</div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="input-bar">
-            <input type="text" id="periodInput" placeholder="Period last 3 digits" maxlength="3">
-            <button onclick="manualPredict()">🔮 Predict Period</button>
-        </div>
+  <!-- Heatmap Section -->
+  <div class="card" style="margin-bottom:var(--gap);">
+    <div class="card-title" style="justify-content:space-between;">
+      <span>Digit Draw Gaps (Hot & Cold)</span>
+      <span style="font-size:0.7rem;color:var(--text-muted);text-transform:none;letter-spacing:0;" id="drawsLabel">-- draws analyzed</span>
     </div>
+    <div class="heatmap-grid" id="heatmapGrid"></div>
+  </div>
 
-    <!-- 📊 Hot & Cold Digit Heatmap Grid (Digits 0-9) -->
-    <div class="heatmap-card">
-        <h3><span>🔥 Hot & Cold Digit Draw Gaps (0 - 9)</span> <span style="font-size:0.8rem;color:var(--text-muted);" id="drawsAnalyzedLabel">850+ Draws Analyzed</span></h3>
-        <div class="digit-grid" id="heatmapGrid">
-            <!-- Dynamically populated digits 0-9 -->
-        </div>
+  <!-- Accuracy Sparklines -->
+  <div class="sparkline-row">
+    <div class="card sparkline-card">
+      <div class="spark-header">
+        <span class="card-title" style="margin:0;">Digit Accuracy</span>
+        <span class="spark-val" style="color:var(--accent-cyan);" id="sparkDigitVal">--%</span>
+      </div>
+      <svg id="sparkDigit" viewBox="0 0 200 40" preserveAspectRatio="none"></svg>
     </div>
-
-    <!-- Paginated History Table -->
-    <div class="history-card">
-        <h3>📜 Live History & Validation (15 / Page)</h3>
-        <div class="table-responsive">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Period</th>
-                        <th>Actual Digit</th>
-                        <th>Color</th>
-                        <th>Size</th>
-                        <th>Predicted Target</th>
-                        <th>Digit Result</th>
-                        <th>Size Result</th>
-                        <th>Color Result</th>
-                    </tr>
-                </thead>
-                <tbody id="historyBody">
-                    <tr><td colspan="8" style="text-align:center;padding:20px;" class="dim-text">Loading historical records...</td></tr>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Color Trading Navigation Controls -->
-        <div class="pagination-bar">
-            <button class="page-btn" id="prevPageBtn" onclick="changePage(-1)">◀ Prev</button>
-            <span class="page-text" id="pageInfoDisplay">Page 1 of 1</span>
-            <button class="page-btn" id="nextPageBtn" onclick="changePage(1)">Next ▶</button>
-        </div>
+    <div class="card sparkline-card">
+      <div class="spark-header">
+        <span class="card-title" style="margin:0;">Size Accuracy</span>
+        <span class="spark-val" style="color:var(--accent-green);" id="sparkSizeVal">--%</span>
+      </div>
+      <svg id="sparkSize" viewBox="0 0 200 40" preserveAspectRatio="none"></svg>
     </div>
+    <div class="card sparkline-card">
+      <div class="spark-header">
+        <span class="card-title" style="margin:0;">Color Accuracy</span>
+        <span class="spark-val" style="color:var(--accent-violet);" id="sparkColorVal">--%</span>
+      </div>
+      <svg id="sparkColor" viewBox="0 0 200 40" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+
+  <!-- History Table -->
+  <div class="card">
+    <div class="card-title">Live History & Validation</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Period</th><th>Digit</th><th>Color</th><th>Size</th>
+            <th>Prediction</th><th>Digit</th><th>Size</th><th>Color</th>
+          </tr>
+        </thead>
+        <tbody id="historyBody">
+          <tr><td colspan="8" style="text-align:center;padding:24px;">
+            <div class="skeleton" style="height:16px;width:200px;margin:0 auto;"></div>
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination">
+      <button class="pg-btn" id="prevBtn" onclick="changePage(-1)" disabled>&#x25C0; Prev</button>
+      <span class="pg-info" id="pageInfo">Page 1 of 1</span>
+      <button class="pg-btn" id="nextBtn" onclick="changePage(1)">Next &#x25B6;</button>
+    </div>
+  </div>
 
 </div>
 
 <script>
-let currentPage = 1;
-let totalPages = 1;
-let totalRecords = 0;
-const pageLimit = 15;
+/* ═══════════════════════════════════════════════════════
+   JavaScript Engine
+   ═══════════════════════════════════════════════════════ */
+
+const POLL_INTERVAL = 3000;
+const PAGE_SIZE = 15;
+let currentPage = 1, totalPages = 1, totalRecords = 0;
+let wsConnected = false;
+let lastPredData = null;
+
+// Accuracy history for sparklines
+const accHistory = { digit: [], size: [], color: [] };
+const MAX_SPARK_POINTS = 30;
+
+// Win streak tracking
+let winStreak = 0;
 
 const colorMap = {0:'violet',1:'green',2:'red',3:'green',4:'red',5:'violet',6:'red',7:'green',8:'red',9:'green'};
+const colorClass = d => 'c-' + (colorMap[d] || 'violet');
 
-// Smart Dual Engine: WebSocket with HTTP Polling Fallback
+// ─── Toast System ───
+function showToast(msg, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateX(40px)'; setTimeout(() => toast.remove(), 300); }, 3500);
+}
+
+// ─── 30-Second Countdown Timer ───
+const CIRCUMFERENCE = 2 * Math.PI * 60; // r=60
+function updateCountdown() {
+  const now = Date.now();
+  const secondsInCycle = Math.floor((now / 1000) % 30);
+  const remaining = 30 - secondsInCycle;
+
+  const ring = document.getElementById('countdownRing');
+  const val = document.getElementById('countdownValue');
+  const offset = CIRCUMFERENCE * (1 - remaining / 30);
+
+  ring.style.strokeDashoffset = offset;
+  val.textContent = remaining;
+
+  if (remaining <= 5) {
+    ring.classList.add('urgent');
+    val.classList.add('urgent');
+  } else {
+    ring.classList.remove('urgent');
+    val.classList.remove('urgent');
+  }
+}
+setInterval(updateCountdown, 500);
+updateCountdown();
+
+// ─── Sparkline Renderer ───
+function renderSparkline(svgId, data, color) {
+  const svg = document.getElementById(svgId);
+  if (!data || data.length < 2) { svg.innerHTML = ''; return; }
+  const w = 200, h = 40, pad = 2;
+  const min = Math.max(0, Math.min(...data) - 5);
+  const max = Math.min(100, Math.max(...data) + 5);
+  const range = max - min || 1;
+  const pts = data.map((v, i) => {
+    const x = pad + (i / (data.length - 1)) * (w - 2 * pad);
+    const y = h - pad - ((v - min) / range) * (h - 2 * pad);
+    return `${x},${y}`;
+  });
+  const lineD = 'M' + pts.join('L');
+  const areaD = lineD + `L${pad + ((data.length - 1) / (data.length - 1)) * (w - 2 * pad)},${h}L${pad},${h}Z`;
+  svg.innerHTML = `
+    <path class="spark-area" d="${areaD}" fill="${color}" />
+    <path class="spark-line" d="${lineD}" stroke="${color}" />
+  `;
+}
+
+// ─── Update Prediction Display ───
+function updatePrediction(data) {
+  if (!data || data.prediction === undefined) return;
+  lastPredData = data;
+
+  const el = document.getElementById('predictedDigit');
+  el.textContent = data.prediction;
+  el.className = 'hero-digit anim ' + colorClass(data.prediction);
+
+  // Size pill
+  const sp = document.getElementById('sizePill');
+  const sz = (data.predicted_size || 'Big').toUpperCase();
+  sp.textContent = `SIZE: ${sz}`;
+  sp.className = `pill sz-${sz.toLowerCase() === 'big' ? 'big' : 'small'}`;
+
+  // Color pill
+  const cp = document.getElementById('colorPill');
+  const cl = (data.predicted_color || 'Green').toLowerCase();
+  cp.textContent = `COLOR: ${cl.toUpperCase()}`;
+  cp.className = `pill cl-${cl}`;
+
+  // Meta chips
+  document.getElementById('periodChip').textContent = `Period: ...${data.period_tail || '---'}`;
+  document.getElementById('modeChip').textContent = `Mode: ${data.mode || 'ensemble'}`;
+  const confVal = data.confidence || 0;
+  document.getElementById('confChip').textContent = `Conf: ${confVal}%`;
+  document.getElementById('confFill').style.width = `${Math.min(confVal, 100)}%`;
+  document.getElementById('last5Chip').textContent = `Last 5: ${(data.last_5 || []).join(',')}`;
+
+  // Accuracy displays
+  if (data.digit_acc !== undefined) document.getElementById('digitAccDisplay').textContent = `${data.digit_acc}%`;
+  if (data.size_acc !== undefined) document.getElementById('sizeAccDisplay').textContent = `${data.size_acc}%`;
+  if (data.color_acc !== undefined) document.getElementById('colorAccDisplay').textContent = `${data.color_acc}%`;
+
+  // Votes
+  if (data.votes) {
+    document.getElementById('vLGBM').textContent = data.votes.lightgbm ? `${data.votes.lightgbm}%` : 'N/A';
+    document.getElementById('vDeep').textContent = data.votes.deep_attention ? `${data.votes.deep_attention}%` : 'N/A';
+    document.getElementById('vQ').textContent = data.votes.q_agent ? `${data.votes.q_agent}%` : 'N/A';
+    document.getElementById('vEnsemble').textContent = `${confVal}%`;
+  }
+
+  // Heatmap
+  if (data.gaps) renderHeatmap(data.gaps, data.freqs);
+
+  // Sparkline history
+  if (data.digit_acc !== undefined) {
+    accHistory.digit.push(data.digit_acc);
+    accHistory.size.push(data.size_acc || 0);
+    accHistory.color.push(data.color_acc || 0);
+    if (accHistory.digit.length > MAX_SPARK_POINTS) { accHistory.digit.shift(); accHistory.size.shift(); accHistory.color.shift(); }
+    document.getElementById('sparkDigitVal').textContent = `${data.digit_acc}%`;
+    document.getElementById('sparkSizeVal').textContent = `${data.size_acc || 0}%`;
+    document.getElementById('sparkColorVal').textContent = `${data.color_acc || 0}%`;
+    renderSparkline('sparkDigit', accHistory.digit, '#22d3ee');
+    renderSparkline('sparkSize', accHistory.size, '#34d399');
+    renderSparkline('sparkColor', accHistory.color, '#a78bfa');
+  }
+}
+
+function renderHeatmap(gaps, freqs) {
+  const grid = document.getElementById('heatmapGrid');
+  grid.innerHTML = '';
+  let totalFreq = 0;
+  for (let d = 0; d <= 9; d++) totalFreq += (freqs && freqs[d]) || 0;
+  document.getElementById('drawsLabel').textContent = `${totalFreq > 0 ? Math.round(totalFreq / 10 * 10) : '--'} draws analyzed`;
+
+  for (let d = 0; d <= 9; d++) {
+    const gapVal = gaps[d] !== undefined ? gaps[d] : 0;
+    const freq = (freqs && freqs[d]) || 0;
+    const cell = document.createElement('div');
+    cell.className = `heat-cell ${gapVal > 15 ? 'hot' : (gapVal < 3 ? 'cold' : '')}`;
+    cell.innerHTML = `
+      <div class="h-digit ${colorClass(d)}">${d}</div>
+      <div class="h-gap">Gap: ${gapVal}</div>
+      <div class="h-freq">${freq}x</div>
+    `;
+    grid.appendChild(cell);
+  }
+}
+
+// ─── Copy Prediction ───
+function copyPrediction() {
+  if (!lastPredData) { showToast('No prediction available', 'error'); return; }
+  const d = lastPredData;
+  const text = `WinGo 30S Prediction\nPeriod: ${d.period || d.period_tail}\nDigit: ${d.prediction}\nSize: ${d.predicted_size}\nColor: ${d.predicted_color}\nConfidence: ${d.confidence}%`;
+  navigator.clipboard.writeText(text).then(() => showToast('Prediction copied!', 'success')).catch(() => showToast('Copy failed', 'error'));
+}
+
+// ─── WebSocket ───
 let ws = null;
 function initWebSocket() {
-    try {
-        const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-        ws = new WebSocket(`${wsProtocol}//${location.host}/ws`);
-        
-        ws.onopen = () => {
-            document.getElementById('liveStatus').innerHTML = '<span class="live-dot"></span>Live (WS)';
-        };
-        
-        ws.onmessage = (e) => {
-            const data = JSON.parse(e.data);
-            if (data.type === 'prediction') {
-                updatePrediction(data);
-            } else if (data.type === 'result') {
-                if (currentPage === 1) loadHistory(1);
-                else updateStats();
-            }
-        };
-        
-        ws.onerror = ws.onclose = () => {
-            document.getElementById('liveStatus').innerHTML = '<span class="live-dot" style="background:#00d4ff;"></span>Live (HTTP)';
-        };
-    } catch(e) {
-        document.getElementById('liveStatus').innerHTML = '<span class="live-dot" style="background:#00d4ff;"></span>Live (HTTP)';
-    }
+  try {
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(`${proto}//${location.host}/ws`);
+    ws.onopen = () => { wsConnected = true; document.getElementById('liveStatus').innerHTML = '<span class="live-dot"></span> Live (WS)'; };
+    ws.onmessage = (e) => {
+      const data = JSON.parse(e.data);
+      if (data.type === 'prediction') updatePrediction(data);
+      else if (data.type === 'result') { if (currentPage === 1) loadHistory(1); else updateStats(); }
+    };
+    ws.onerror = ws.onclose = () => { wsConnected = false; document.getElementById('liveStatus').innerHTML = '<span class="live-dot" style="background:var(--accent-cyan);box-shadow:0 0 6px var(--accent-cyan);"></span> Live (HTTP)'; };
+  } catch(e) {
+    wsConnected = false;
+  }
 }
 
-function updatePrediction(data) {
-    if (!data || data.prediction === undefined) return;
-    const digitEl = document.getElementById('predictedDigit');
-    digitEl.textContent = data.prediction;
-    digitEl.className = 'digit pulse';
-    
-    const cName = colorMap[data.prediction] || 'violet';
-    digitEl.classList.add(cName);
-    
-    const sizeBadge = document.getElementById('predictedSizeBadge');
-    sizeBadge.textContent = `SIZE: ${(data.predicted_size || 'BIG').toUpperCase()}`;
-    sizeBadge.className = `target-pill size-${(data.predicted_size || 'big').toLowerCase()}`;
+// ─── HTTP Fetch ───
+async function syncDraws() { try { await fetch(`/api/live_draws?_nc=${Date.now()}`); } catch(e) {} }
 
-    const colorBadge = document.getElementById('predictedColorBadge');
-    colorBadge.textContent = `COLOR: ${(data.predicted_color || 'GREEN').toUpperCase()}`;
-    colorBadge.className = `target-pill color-${(data.predicted_color || 'green').toLowerCase()}`;
-    
-    document.getElementById('periodDisplay').textContent = 
-        `Target Period: ...${data.period_tail} | History: [${(data.last_5 || []).join(', ')}]`;
-    document.getElementById('modeDisplay').textContent = `Mode: ${data.mode || '10X ML'}`;
-    document.getElementById('confDisplay').textContent = `Confidence: ${data.confidence || 85}%`;
-    document.getElementById('confidenceFill').style.width = `${Math.min(data.confidence || 85, 100)}%`;
-    
-    if (data.digit_acc !== undefined) document.getElementById('digitAccDisplay').textContent = `${data.digit_acc}%`;
-    if (data.size_acc !== undefined) document.getElementById('sizeAccDisplay').textContent = `${data.size_acc}%`;
-    if (data.color_acc !== undefined) document.getElementById('colorAccDisplay').textContent = `${data.color_acc}%`;
-
-    // Update 10X AI Votes Breakdown
-    if (data.votes) {
-        document.getElementById('vLightGBM').textContent = `${data.votes.lightgbm || 85}%`;
-        document.getElementById('vDeep').textContent = `${data.votes.deep_attention || 78}%`;
-        document.getElementById('vQAgent').textContent = `${data.votes.q_agent || 90}%`;
-        document.getElementById('vPeriod').textContent = `${data.votes.period_modulo || 85}%`;
-    }
-
-    // Update Heatmap Gaps if available
-    if (data.gaps) renderHeatmap(data.gaps);
-}
-
-function renderHeatmap(gaps) {
-    const grid = document.getElementById('heatmapGrid');
-    grid.innerHTML = '';
-    
-    for (let d = 0; d <= 9; d++) {
-        const gapVal = gaps[d] !== undefined ? gaps[d] : 0;
-        const box = document.createElement('div');
-        box.className = `digit-box ${gapVal > 15 ? 'hot' : (gapVal < 3 ? 'cold' : '')}`;
-        
-        box.innerHTML = `
-            <div class="num ${colorMap[d]}">${d}</div>
-            <div class="gap-label">Gap: ${gapVal}</div>
-        `;
-        grid.appendChild(box);
-    }
-}
-
-async function syncLiveDrawsProxy() {
-    try {
-        const ts = Date.now();
-        await fetch(`/api/live_draws?_nc=${ts}`);
-    } catch(e) {}
-}
-
-async function fetchLatestPredictionHTTP() {
-    try {
-        const ts = Date.now();
-        const res = await fetch(`/api/latest_prediction?_nc=${ts}`);
-        const data = await res.json();
-        if (!data.error) {
-            updatePrediction(data);
-        }
-    } catch(e) {}
-}
-
-async function loadHistory(page = 1) {
-    try {
-        currentPage = page;
-        const ts = Date.now();
-        const res = await fetch(`/api/history?page=${page}&limit=${pageLimit}&_nc=${ts}`);
-        const responseData = await res.json();
-        
-        const rows = responseData.data || [];
-        totalRecords = responseData.total_records || 0;
-        totalPages = responseData.total_pages || 1;
-
-        const tbody = document.getElementById('historyBody');
-        tbody.innerHTML = '';
-        
-        if (rows.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;" class="dim-text">Syncing historical records...</td></tr>';
-            return;
-        }
-
-        rows.forEach(row => {
-            const tr = document.createElement('tr');
-            tr.id = `row-${row.period}`;
-            
-            let predictedText = '-';
-            if (row.predicted !== null && row.predicted !== undefined) {
-                predictedText = `${row.predicted} (${row.predicted_size || '-'}, ${row.predicted_color || '-'})`;
-            }
-            
-            let digitRes = (row.correct_digit === 1 || row.correct_digit === true) ? '<span class="badge-match">✅ Match</span>' : ((row.correct_digit === 0 || row.correct_digit === false) ? '<span class="badge-miss">❌ Miss</span>' : '<span class="dim-text">-</span>');
-            let sizeRes = (row.correct_size === 1 || row.correct_size === true) ? '<span class="badge-match">✅ Match</span>' : ((row.correct_size === 0 || row.correct_size === false) ? '<span class="badge-miss">❌ Miss</span>' : '<span class="dim-text">-</span>');
-            let colorRes = (row.correct_color === 1 || row.correct_color === true) ? '<span class="badge-match">✅ Match</span>' : ((row.correct_color === 0 || row.correct_color === false) ? '<span class="badge-miss">❌ Miss</span>' : '<span class="dim-text">-</span>');
-
-            tr.innerHTML = `
-                <td class="dim-text">...${String(row.period).slice(-3)}</td>
-                <td><span class="digit-circle ${colorMap[row.digit]||'violet'}">${row.digit}</span></td>
-                <td style="color:var(--neon-${row.color||'green'});font-weight:600;">${row.color}</td>
-                <td style="font-weight:600;">${row.size}</td>
-                <td><strong>${predictedText}</strong></td>
-                <td>${digitRes}</td>
-                <td>${sizeRes}</td>
-                <td>${colorRes}</td>
-            `;
-            tbody.appendChild(tr);
-        });
-
-        const startRecord = totalRecords > 0 ? (currentPage - 1) * pageLimit + 1 : 0;
-        const endRecord = Math.min(currentPage * pageLimit, totalRecords);
-
-        document.getElementById('pageInfoDisplay').textContent = 
-            `Page ${currentPage} of ${totalPages} (${startRecord}-${endRecord} of ${totalRecords})`;
-        
-        document.getElementById('totalRecordsDisplay').textContent = totalRecords;
-        document.getElementById('prevPageBtn').disabled = (currentPage <= 1);
-        document.getElementById('nextPageBtn').disabled = (currentPage >= totalPages);
-
-        updateStats();
-
-    } catch(e) { console.error(e); }
-}
-
-function changePage(delta) {
-    const newPage = currentPage + delta;
-    if (newPage >= 1 && newPage <= totalPages) {
-        loadHistory(newPage);
-    }
+async function fetchPrediction() {
+  try {
+    const res = await fetch(`/api/latest_prediction?_nc=${Date.now()}`);
+    const data = await res.json();
+    if (!data.error) updatePrediction(data);
+  } catch(e) {}
 }
 
 async function updateStats() {
-    try {
-        const ts = Date.now();
-        const res = await fetch(`/api/stats?_nc=${ts}`);
-        const stats = await res.json();
-        document.getElementById('totalRecordsDisplay').textContent = stats.total_results || 0;
-        document.getElementById('digitAccDisplay').textContent = `${stats.digit_accuracy || 0}%`;
-        document.getElementById('sizeAccDisplay').textContent = `${stats.size_accuracy || 0}%`;
-        document.getElementById('colorAccDisplay').textContent = `${stats.color_accuracy || 0}%`;
-        if (stats.rl) {
-            document.getElementById('qTableSize').textContent = stats.rl.q_table_size || 0;
-        }
-        if (stats.gaps) renderHeatmap(stats.gaps);
-    } catch(e) {}
+  try {
+    const res = await fetch(`/api/stats?_nc=${Date.now()}`);
+    const s = await res.json();
+    document.getElementById('totalRecordsDisplay').textContent = s.total_results || 0;
+    document.getElementById('digitAccDisplay').textContent = `${s.digit_accuracy || 0}%`;
+    document.getElementById('sizeAccDisplay').textContent = `${s.size_accuracy || 0}%`;
+    document.getElementById('colorAccDisplay').textContent = `${s.color_accuracy || 0}%`;
+    if (s.rl) document.getElementById('qTableSize').textContent = s.rl.q_table_size || 0;
+    if (s.gaps) renderHeatmap(s.gaps, s.freqs);
+  } catch(e) {}
 }
 
+// ─── Load History (with debounce) ───
+let historyDebounce = null;
+let lastHistoryHash = '';
+
+async function loadHistory(page = 1) {
+  if (historyDebounce) clearTimeout(historyDebounce);
+  historyDebounce = setTimeout(async () => { await _doLoadHistory(page); }, 200);
+}
+
+async function _doLoadHistory(page) {
+  try {
+    currentPage = page;
+    const res = await fetch(`/api/history?page=${page}&limit=${PAGE_SIZE}&_nc=${Date.now()}`);
+    const resp = await res.json();
+    const rows = resp.data || [];
+    totalRecords = resp.total_records || 0;
+    totalPages = resp.total_pages || 1;
+
+    // Debounce: skip if data hasn't changed
+    const hash = JSON.stringify(rows.map(r => r.period));
+    if (hash === lastHistoryHash && page === currentPage) return;
+    lastHistoryHash = hash;
+
+    const tbody = document.getElementById('historyBody');
+    tbody.innerHTML = '';
+
+    if (rows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;" class="na-text">Syncing records...</td></tr>';
+      return;
+    }
+
+    // Calculate win streak from first page
+    if (page === 1) {
+      winStreak = 0;
+      for (const row of rows) {
+        if (row.correct_digit === true || row.correct_digit === 1) winStreak++;
+        else break;
+      }
+      const badge = document.getElementById('streakBadge');
+      if (winStreak > 0) { badge.textContent = `\u{1F525} ${winStreak} Win Streak`; badge.style.display = 'inline-flex'; }
+      else { badge.style.display = 'none'; }
+    }
+
+    for (const row of rows) {
+      const tr = document.createElement('tr');
+      const dc = colorClass(row.digit);
+
+      let predText = '<span class="na-text">-</span>';
+      if (row.predicted !== null && row.predicted !== undefined) {
+        predText = `<strong>${row.predicted}</strong> <span class="na-text">(${(row.predicted_size||'-')[0]}, ${(row.predicted_color||'-')[0]})</span>`;
+      }
+
+      const fmtResult = (val) => val === true || val === 1 ? '<span class="match">&#x2705;</span>' : (val === false || val === 0 ? '<span class="miss">&#x274C;</span>' : '<span class="na-text">-</span>');
+
+      tr.innerHTML = `
+        <td class="na-text font-mono" style="font-size:0.78rem;">...${String(row.period).slice(-3)}</td>
+        <td><span class="digit-badge ${dc}">${row.digit}</span></td>
+        <td style="color:var(--accent-${colorMap[row.digit]||'green'});font-weight:600;font-size:0.82rem;">${row.color}</td>
+        <td style="font-weight:600;font-size:0.82rem;">${row.size}</td>
+        <td>${predText}</td>
+        <td>${fmtResult(row.correct_digit)}</td>
+        <td>${fmtResult(row.correct_size)}</td>
+        <td>${fmtResult(row.correct_color)}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    document.getElementById('totalRecordsDisplay').textContent = totalRecords;
+    const start = totalRecords > 0 ? (currentPage - 1) * PAGE_SIZE + 1 : 0;
+    const end = Math.min(currentPage * PAGE_SIZE, totalRecords);
+    document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages} (${start}-${end} of ${totalRecords})`;
+    document.getElementById('prevBtn').disabled = currentPage <= 1;
+    document.getElementById('nextBtn').disabled = currentPage >= totalPages;
+
+    updateStats();
+  } catch(e) { console.error(e); }
+}
+
+function changePage(delta) {
+  const np = currentPage + delta;
+  if (np >= 1 && np <= totalPages) loadHistory(np);
+}
+
+// ─── Manual Predict ───
 async function manualPredict() {
-    const suffix = document.getElementById('periodInput').value;
-    if (!suffix) { alert('Enter last 3 digits of period'); return; }
-    
-    const res = await fetch('/api/predict', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({period_suffix: suffix})
-    });
+  const suffix = document.getElementById('periodInput').value;
+  if (!suffix) { showToast('Enter period last 3 digits', 'error'); return; }
+  try {
+    const res = await fetch('/api/predict', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({period_suffix: suffix}) });
     const data = await res.json();
-    if (data.error) { alert(data.error); return; }
-    
-    updatePrediction({
-        prediction: data.prediction,
-        predicted_size: data.predicted_size,
-        predicted_color: data.predicted_color,
-        confidence: data.confidence,
-        mode: data.mode,
-        last_5: data.last_5,
-        period_tail: data.period_suffix,
-        digit_acc: data.digit_acc,
-        size_acc: data.size_acc,
-        color_acc: data.color_acc,
-        votes: data.votes,
-        gaps: data.gaps
-    });
+    if (data.error) { showToast(data.error, 'error'); return; }
+    updatePrediction({ prediction: data.prediction, predicted_size: data.predicted_size, predicted_color: data.predicted_color, confidence: data.confidence, mode: data.mode, last_5: data.last_5, period_tail: data.period_suffix, digit_acc: data.digit_acc, size_acc: data.size_acc, color_acc: data.color_acc, votes: data.votes, gaps: data.gaps, freqs: data.freqs });
+    showToast(`Prediction: ${data.prediction} (${data.predicted_size}, ${data.predicted_color})`, 'success');
+  } catch(e) { showToast('Prediction failed', 'error'); }
 }
 
-// Initial Fast Execution
+// ─── Init ───
 initWebSocket();
-syncLiveDrawsProxy().then(() => {
-    fetchLatestPredictionHTTP();
-    loadHistory(1);
-});
+syncDraws().then(() => { fetchPrediction(); loadHistory(1); });
 
-// Fast Real-Time Polling Every 2 Seconds
+// Polling (only if WS not connected)
 setInterval(async () => {
-    await syncLiveDrawsProxy();
-    await fetchLatestPredictionHTTP();
-    if (currentPage === 1) await loadHistory(1);
-    else await updateStats();
-}, 2000);
+  await syncDraws();
+  if (!wsConnected) await fetchPrediction();
+  if (currentPage === 1) await loadHistory(1);
+  else await updateStats();
+}, POLL_INTERVAL);
 </script>
+
 </body>
 </html>
