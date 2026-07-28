@@ -30,7 +30,7 @@ API_URL = "https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.jso
 HEADERS = {
     'accept': 'application/json, text/plain, */*',
     'accept-language': 'en-GB,en;q=0.7',
-    'cache-control': 'no-cache',
+    'cache-control': 'no-cache, no-store, must-revalidate',
     'origin': 'https://www.tirangagame.xyz',
     'pragma': 'no-cache',
     'priority': 'u=1, i',
@@ -166,7 +166,7 @@ current_pending_pred = None
 def fetch_api():
     ts = int(time.time() * 1000)
     try:
-        r = requests.get(f"{API_URL}&ts={ts}", headers=HEADERS, timeout=8)
+        r = requests.get(f"{API_URL}&ts={ts}", headers=HEADERS, timeout=6)
         data = r.json()
         if data.get("code") == 0 and data.get("data", {}).get("list"):
             return data["data"]["list"]
@@ -608,18 +608,22 @@ async def sync_draws(request: Request):
 
 @app.get("/api/latest_prediction")
 async def latest_prediction():
-    """Generates and returns latest prediction for HTTP polling (Serverless Ready)"""
-    sync_latest_draws_on_demand()
-    conn = get_db()
-    rows = conn.execute("SELECT period, digit FROM results ORDER BY fetched_at DESC LIMIT 5").fetchall()
-    conn.close()
-
-    if len(rows) < 5:
-        return {"error": "Collecting initial draws..."}
-
-    last_5 = [r[1] for r in rows][::-1]
-    latest_period = str(rows[0][0]).strip()
-    next_period = str(int(latest_period) + 1)
+    """Generates and returns latest prediction for HTTP polling (Serverless Guaranteed Real-Time)"""
+    draws = sync_latest_draws_on_demand()
+    
+    if draws and len(draws) >= 5:
+        latest_period = str(draws[0]["issueNumber"]).strip()
+        next_period = str(int(latest_period) + 1)
+        last_5 = [int(d["number"]) for d in draws[:5]][::-1]
+    else:
+        conn = get_db()
+        rows = conn.execute("SELECT period, digit FROM results ORDER BY fetched_at DESC LIMIT 5").fetchall()
+        conn.close()
+        if len(rows) < 5:
+            return {"error": "Collecting initial draws..."}
+        last_5 = [r[1] for r in rows][::-1]
+        latest_period = str(rows[0][0]).strip()
+        next_period = str(int(latest_period) + 1)
 
     pred_digit, pred_size, pred_color, conf, mode = predict_next(last_5, next_period)
     accs = compute_accuracies()
@@ -642,7 +646,7 @@ async def latest_prediction():
 
 @app.get("/api/history")
 async def history(page: int = 1, limit: int = 15):
-    sync_latest_draws_on_demand()
+    draws = sync_latest_draws_on_demand()
     if page < 1: page = 1
     if limit < 1: limit = 15
     offset = (page - 1) * limit
@@ -650,6 +654,50 @@ async def history(page: int = 1, limit: int = 15):
     conn = get_db()
     total_count = conn.execute("SELECT COUNT(*) FROM results").fetchone()[0]
     total_pages = math.ceil(total_count / limit) if total_count > 0 else 1
+
+    # On page 1 on Vercel, merge direct live draws from API response with prediction DB
+    if page == 1 and draws:
+        result_list = []
+        for d in draws[:limit]:
+            p_str = str(d["issueNumber"]).strip()
+            dig = int(d["number"])
+            c_name = str(d["color"]).strip().capitalize()
+            sz = "Big" if dig >= 5 else "Small"
+            
+            row = conn.execute(
+                "SELECT rl_pred, predicted_size, predicted_color, is_correct, is_size_correct, is_color_correct FROM predictions WHERE period=? LIMIT 1",
+                (p_str,)
+            ).fetchone()
+            
+            pred_d = row["rl_pred"] if row else None
+            pred_sz = row["predicted_size"] if row else (get_size_for_digit(pred_d) if pred_d is not None else None)
+            pred_clr = row["predicted_color"] if row else (get_color_for_digit(pred_d) if pred_d is not None else None)
+            
+            is_dig_corr = row["is_correct"] if row else None
+            is_sz_corr = row["is_size_correct"] if row else None
+            is_clr_corr = row["is_color_correct"] if row else None
+
+            result_list.append({
+                "period": p_str,
+                "digit": dig,
+                "color": c_name,
+                "size": sz,
+                "predicted": pred_d,
+                "predicted_size": pred_sz,
+                "predicted_color": pred_clr,
+                "correct_digit": is_dig_corr,
+                "correct_size": is_sz_corr,
+                "correct_color": is_clr_corr
+            })
+            
+        conn.close()
+        return {
+            "page": page,
+            "limit": limit,
+            "total_records": max(total_count, len(result_list)),
+            "total_pages": total_pages,
+            "data": result_list
+        }
 
     try:
         query = """
