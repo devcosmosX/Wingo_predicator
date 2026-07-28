@@ -24,7 +24,7 @@
 * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
 body { background: var(--bg-dark); color: var(--text-primary); min-height: 100vh; padding-bottom: 40px; overflow-x: hidden; }
 
-/* Subtle Ambient Lighting */
+/* Ambient Lighting */
 body::before {
     content: ''; position: fixed; top: -10%; left: 50%; transform: translateX(-50%);
     width: 600px; height: 600px; background: radial-gradient(circle, rgba(123, 47, 247, 0.15) 0%, rgba(0,0,0,0) 70%);
@@ -289,6 +289,21 @@ function updatePrediction(data) {
     if (data.color_acc !== undefined) document.getElementById('colorAccDisplay').textContent = `${data.color_acc}%`;
 }
 
+async function clientDirectFetchSync() {
+    try {
+        const ts = Date.now();
+        const res = await fetch(`https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json?ts=${ts}`);
+        const json = await res.json();
+        if (json && json.data && json.data.list) {
+            await fetch('/api/sync', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({draws: json.data.list})
+            });
+        }
+    } catch(e) {}
+}
+
 async function fetchLatestPredictionHTTP() {
     try {
         const res = await fetch('/api/latest_prediction');
@@ -313,7 +328,8 @@ async function loadHistory(page = 1) {
         tbody.innerHTML = '';
         
         if (rows.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;" class="dim-text">No records yet. Syncing live API...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;" class="dim-text">Syncing historical records...</td></tr>';
+            await clientDirectFetchSync();
             return;
         }
 
@@ -407,11 +423,14 @@ async function manualPredict() {
 
 // Initial Load & Polling setup
 initWebSocket();
-fetchLatestPredictionHTTP();
-loadHistory(1);
+clientDirectFetchSync().then(() => {
+    fetchLatestPredictionHTTP();
+    loadHistory(1);
+});
 
 // Automatic Polling Fallback Every 3s
 setInterval(() => {
+    clientDirectFetchSync();
     fetchLatestPredictionHTTP();
     if (currentPage === 1) loadHistory(1);
     else updateStats();

@@ -1,4 +1,4 @@
-import sqlite3, json, time, asyncio, os, sys, math
+import sqlite3, json, time, asyncio, os, sys, math, shutil
 from datetime import datetime
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
@@ -9,12 +9,19 @@ import requests
 import numpy as np
 import pandas as pd
 
-# ─── Vercel Serverless File Path Handling ───
+# ─── Vercel Serverless File Path & Seed DB Handling ───
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 IS_VERCEL = os.environ.get("VERCEL") is not None
 
 if IS_VERCEL or not os.access(BASE_DIR, os.W_OK):
     DB = "/tmp/wingo.db"
+    seed_db = os.path.join(BASE_DIR, "wingo.db")
+    if os.path.exists(seed_db) and (not os.path.exists(DB) or os.path.getsize(DB) < os.path.getsize(seed_db)):
+        try:
+            shutil.copyfile(seed_db, DB)
+            print(f"[VERCEL SEED] Successfully copied pre-populated wingo.db ({os.path.getsize(seed_db)} bytes) to /tmp/wingo.db")
+        except Exception as e:
+            print(f"[VERCEL SEED ERROR] {e}")
 else:
     DB = os.path.join(BASE_DIR, "wingo.db")
 
@@ -157,11 +164,12 @@ current_pending_pred = None
 def fetch_api():
     ts = int(time.time() * 1000)
     try:
-        r = requests.get(f"{API_URL}?ts={ts}", headers=HEADERS, timeout=10)
+        r = requests.get(f"{API_URL}?ts={ts}", headers=HEADERS, timeout=8)
         data = r.json()
         if data.get("code") == 0 and data.get("data", {}).get("list"):
             return data["data"]["list"]
-    except: pass
+    except Exception as e:
+        print(f"[FETCH API NOTE] {e}")
     return []
 
 def sync_latest_draws_on_demand():
@@ -182,7 +190,6 @@ def sync_latest_draws_on_demand():
             except: pass
         conn.commit()
 
-        # Update latest completed draw prediction result
         latest = draws[0]
         period = str(latest["issueNumber"]).strip()
         digit = int(latest["number"])
@@ -471,6 +478,34 @@ async def root():
     html_path = os.path.join(BASE_DIR, "index.html")
     with open(html_path, encoding="utf-8") as f:
         return HTMLResponse(f.read())
+
+@app.post("/api/sync")
+async def sync_draws(request: Request):
+    """Client-side fallback sync route"""
+    try:
+        body = await request.json()
+        draws = body.get("draws", [])
+        if draws:
+            conn = get_db()
+            now_str = datetime.now().isoformat()
+            for d in draws:
+                period_str = str(d.get("issueNumber", "")).strip()
+                if period_str:
+                    dig = int(d.get("number", 0))
+                    size = "Big" if dig >= 5 else "Small"
+                    color = d.get("color", "green")
+                    try:
+                        conn.execute(
+                            "INSERT OR IGNORE INTO results (period, digit, color, size, fetched_at) VALUES (?,?,?,?,?)",
+                            (period_str, dig, color, size, now_str)
+                        )
+                    except: pass
+            conn.commit()
+            conn.close()
+            return {"status": "synced", "count": len(draws)}
+    except Exception as e:
+        print(f"[CLIENT SYNC ERROR] {e}")
+    return {"status": "error"}
 
 @app.get("/api/latest_prediction")
 async def latest_prediction():
