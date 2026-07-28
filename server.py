@@ -9,7 +9,15 @@ import requests
 import numpy as np
 import pandas as pd
 
-DB = "wingo.db"
+# ─── Vercel Serverless File Path Handling ───
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+IS_VERCEL = os.environ.get("VERCEL") is not None
+
+if IS_VERCEL or not os.access(BASE_DIR, os.W_OK):
+    DB = "/tmp/wingo.db"
+else:
+    DB = os.path.join(BASE_DIR, "wingo.db")
+
 API_URL = "https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json"
 
 HEADERS = {
@@ -94,8 +102,9 @@ def load_ml():
     global model, features_list, rl_agent
     try:
         from autogluon.tabular import TabularPredictor
-        if os.path.exists('./wingo_model'):
-            model = TabularPredictor.load('./wingo_model')
+        model_path = os.path.join(BASE_DIR, 'wingo_model')
+        if os.path.exists(model_path):
+            model = TabularPredictor.load(model_path)
             print("[ML] AutoGluon model loaded successfully")
     except Exception:
         pass
@@ -103,16 +112,19 @@ def load_ml():
     if model is None:
         try:
             import joblib
-            if os.path.exists('wingo_model.pkl'):
-                model = joblib.load('wingo_model.pkl')
-                if os.path.exists('wingo_features.pkl'):
-                    features_list = joblib.load('wingo_features.pkl')
+            model_pkl = os.path.join(BASE_DIR, 'wingo_model.pkl')
+            feat_pkl = os.path.join(BASE_DIR, 'wingo_features.pkl')
+            if os.path.exists(model_pkl):
+                model = joblib.load(model_pkl)
+                if os.path.exists(feat_pkl):
+                    features_list = joblib.load(feat_pkl)
                 print(f"[ML] Advanced LightGBM model loaded successfully ({len(features_list) if features_list else 0} features)")
         except Exception:
             try:
                 import pickle
-                if os.path.exists('wingo_model.pkl'):
-                    with open('wingo_model.pkl', 'rb') as f:
+                model_pkl = os.path.join(BASE_DIR, 'wingo_model.pkl')
+                if os.path.exists(model_pkl):
+                    with open(model_pkl, 'rb') as f:
                         model = pickle.load(f)
                     print("[ML] LightGBM model (pickle) loaded successfully")
             except Exception as e2:
@@ -151,6 +163,26 @@ def fetch_api():
             return data["data"]["list"]
     except: pass
     return []
+
+def sync_latest_draws_on_demand():
+    """Fetches latest draws on demand for serverless requests"""
+    draws = fetch_api()
+    if draws:
+        conn = get_db()
+        now_str = datetime.now().isoformat()
+        for d in draws:
+            period_str = str(d["issueNumber"]).strip()
+            dig = int(d["number"])
+            size = "Big" if dig >= 5 else "Small"
+            try:
+                conn.execute(
+                    "INSERT OR IGNORE INTO results (period, digit, color, size, fetched_at) VALUES (?,?,?,?,?)",
+                    (period_str, dig, d["color"], size, now_str)
+                )
+            except: pass
+        conn.commit()
+        conn.close()
+    return draws
 
 def build_advanced_features_row(period_str):
     clean_period = str(period_str).strip()
@@ -315,22 +347,8 @@ async def background_scraper():
 
     while True:
         try:
-            draws = fetch_api()
+            draws = sync_latest_draws_on_demand()
             if draws:
-                conn = get_db()
-                now_str = datetime.now().isoformat()
-                for d in draws:
-                    period_str = str(d["issueNumber"]).strip()
-                    dig = int(d["number"])
-                    size = "Big" if dig >= 5 else "Small"
-                    try:
-                        conn.execute(
-                            "INSERT OR IGNORE INTO results (period, digit, color, size, fetched_at) VALUES (?,?,?,?,?)",
-                            (period_str, dig, d["color"], size, now_str)
-                        )
-                    except: pass
-                conn.commit()
-                
                 latest = draws[0]
                 period = str(latest["issueNumber"]).strip()
                 digit = int(latest["number"])
@@ -339,7 +357,8 @@ async def background_scraper():
                 
                 if period != last_processed_period:
                     last_processed_period = period
-                    
+                    conn = get_db()
+                    now_str = datetime.now().isoformat()
                     row = conn.execute(
                         "SELECT id, rl_pred, predicted_size, predicted_color, state_hash FROM predictions WHERE period=? AND actual_digit IS NULL ORDER BY id DESC LIMIT 1",
                         (period,)
@@ -382,7 +401,8 @@ async def background_scraper():
                         
                         if rl_agent and state_hash and rl_pred_val is not None:
                             rl_agent.learn(state_hash, rl_pred_val, digit)
-                    
+                    conn.close()
+
                     accs = compute_accuracies()
 
                     msg_result = json.dumps({
@@ -408,6 +428,7 @@ async def background_scraper():
                         except: dead.add(ws)
                     for ws in dead: connected_clients.discard(ws)
 
+                conn = get_db()
                 rows = conn.execute("SELECT digit FROM results ORDER BY fetched_at DESC LIMIT 5").fetchall()
                 conn.close()
                 
@@ -448,9 +469,12 @@ async def background_scraper():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    task = asyncio.create_task(background_scraper())
-    yield
-    task.cancel()
+    if not IS_VERCEL:
+        task = asyncio.create_task(background_scraper())
+        yield
+        task.cancel()
+    else:
+        yield
 
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -458,11 +482,13 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 # ─── Routes ───
 @app.get("/")
 async def root():
-    with open("index.html", encoding="utf-8") as f:
+    html_path = os.path.join(BASE_DIR, "index.html")
+    with open(html_path, encoding="utf-8") as f:
         return HTMLResponse(f.read())
 
 @app.get("/api/history")
 async def history(page: int = 1, limit: int = 15):
+    sync_latest_draws_on_demand()
     if page < 1: page = 1
     if limit < 1: limit = 15
     offset = (page - 1) * limit
@@ -540,6 +566,7 @@ async def history(page: int = 1, limit: int = 15):
 
 @app.get("/api/stats")
 async def stats():
+    sync_latest_draws_on_demand()
     try:
         accs = compute_accuracies()
         conn = get_db()
@@ -566,6 +593,7 @@ async def stats():
 
 @app.post("/api/predict")
 async def manual_predict(request: Request):
+    sync_latest_draws_on_demand()
     body = await request.json()
     period_suffix = str(body.get("period_suffix", "")).strip()
     
