@@ -165,7 +165,7 @@ def fetch_api():
     return []
 
 def sync_latest_draws_on_demand():
-    """Fetches latest draws on demand for serverless requests"""
+    """Fetches latest draws and updates database automatically on every API call"""
     draws = fetch_api()
     if draws:
         conn = get_db()
@@ -181,6 +181,44 @@ def sync_latest_draws_on_demand():
                 )
             except: pass
         conn.commit()
+
+        # Update latest completed draw prediction result
+        latest = draws[0]
+        period = str(latest["issueNumber"]).strip()
+        digit = int(latest["number"])
+        actual_size = "Big" if digit >= 5 else "Small"
+        actual_color = str(latest["color"]).strip().capitalize()
+
+        row = conn.execute(
+            "SELECT id, rl_pred, predicted_size, predicted_color, state_hash FROM predictions WHERE period=? AND actual_digit IS NULL ORDER BY id DESC LIMIT 1",
+            (period,)
+        ).fetchone()
+
+        if row:
+            pred_id, rl_pred_val, pred_size_val, pred_color_val, state_hash = row[0], row[1], row[2], row[3], row[4]
+            if pred_size_val is None and rl_pred_val is not None: pred_size_val = get_size_for_digit(rl_pred_val)
+            if pred_color_val is None and rl_pred_val is not None: pred_color_val = get_color_for_digit(rl_pred_val)
+
+            is_digit_correct = (rl_pred_val == digit) if rl_pred_val is not None else False
+            is_size_correct = (pred_size_val.lower() == actual_size.lower()) if pred_size_val else False
+            
+            if pred_color_val:
+                if pred_color_val.lower() == actual_color.lower(): is_color_correct = True
+                elif actual_color.lower() in ('violet', 'red', 'green') and pred_color_val.lower() in actual_color.lower(): is_color_correct = True
+                else: is_color_correct = False
+            else: is_color_correct = False
+
+            try:
+                conn.execute(
+                    "UPDATE predictions SET actual_digit=?, is_correct=?, is_size_correct=?, is_color_correct=?, predicted_size=?, predicted_color=?, resolved_at=? WHERE id=?",
+                    (digit, is_digit_correct, is_size_correct, is_color_correct, pred_size_val, pred_color_val, now_str, pred_id)
+                )
+                conn.commit()
+            except: pass
+
+            if rl_agent and state_hash and rl_pred_val is not None:
+                rl_agent.learn(state_hash, rl_pred_val, digit)
+
         conn.close()
     return draws
 
@@ -357,52 +395,6 @@ async def background_scraper():
                 
                 if period != last_processed_period:
                     last_processed_period = period
-                    conn = get_db()
-                    now_str = datetime.now().isoformat()
-                    row = conn.execute(
-                        "SELECT id, rl_pred, predicted_size, predicted_color, state_hash FROM predictions WHERE period=? AND actual_digit IS NULL ORDER BY id DESC LIMIT 1",
-                        (period,)
-                    ).fetchone()
-                    
-                    is_digit_correct = None
-                    is_size_correct = None
-                    is_color_correct = None
-                    rl_pred_val = None
-                    pred_size_val = None
-                    pred_color_val = None
-                    
-                    if row:
-                        pred_id, rl_pred_val, pred_size_val, pred_color_val, state_hash = row[0], row[1], row[2], row[3], row[4]
-                        
-                        if pred_size_val is None and rl_pred_val is not None: pred_size_val = get_size_for_digit(rl_pred_val)
-                        if pred_color_val is None and rl_pred_val is not None: pred_color_val = get_color_for_digit(rl_pred_val)
-
-                        is_digit_correct = (rl_pred_val == digit) if rl_pred_val is not None else False
-                        is_size_correct = (pred_size_val.lower() == actual_size.lower()) if pred_size_val else False
-                        
-                        if pred_color_val:
-                            if pred_color_val.lower() == actual_color.lower():
-                                is_color_correct = True
-                            elif actual_color.lower() in ('violet', 'red', 'green') and pred_color_val.lower() in actual_color.lower():
-                                is_color_correct = True
-                            else:
-                                is_color_correct = False
-                        else:
-                            is_color_correct = False
-
-                        try:
-                            conn.execute(
-                                "UPDATE predictions SET actual_digit=?, is_correct=?, is_size_correct=?, is_color_correct=?, predicted_size=?, predicted_color=?, resolved_at=? WHERE id=?",
-                                (digit, is_digit_correct, is_size_correct, is_color_correct, pred_size_val, pred_color_val, now_str, pred_id)
-                            )
-                            conn.commit()
-                        except Exception as e:
-                            print(f"[UPDATE PRED ERROR] {e}")
-                        
-                        if rl_agent and state_hash and rl_pred_val is not None:
-                            rl_agent.learn(state_hash, rl_pred_val, digit)
-                    conn.close()
-
                     accs = compute_accuracies()
 
                     msg_result = json.dumps({
@@ -412,12 +404,6 @@ async def background_scraper():
                         "digit": digit,
                         "color": latest["color"],
                         "size": actual_size,
-                        "predicted": rl_pred_val,
-                        "predicted_size": pred_size_val,
-                        "predicted_color": pred_color_val,
-                        "correct_digit": is_digit_correct,
-                        "correct_size": is_size_correct,
-                        "correct_color": is_color_correct,
                         "digit_acc": accs["digit_acc"],
                         "size_acc": accs["size_acc"],
                         "color_acc": accs["color_acc"]
@@ -485,6 +471,40 @@ async def root():
     html_path = os.path.join(BASE_DIR, "index.html")
     with open(html_path, encoding="utf-8") as f:
         return HTMLResponse(f.read())
+
+@app.get("/api/latest_prediction")
+async def latest_prediction():
+    """Generates and returns latest prediction for HTTP polling (Serverless Ready)"""
+    sync_latest_draws_on_demand()
+    conn = get_db()
+    rows = conn.execute("SELECT period, digit FROM results ORDER BY fetched_at DESC LIMIT 5").fetchall()
+    conn.close()
+
+    if len(rows) < 5:
+        return {"error": "Collecting initial draws..."}
+
+    last_5 = [r[1] for r in rows][::-1]
+    latest_period = str(rows[0][0]).strip()
+    next_period = str(int(latest_period) + 1)
+
+    pred_digit, pred_size, pred_color, conf, mode = predict_next(last_5, next_period)
+    accs = compute_accuracies()
+
+    return {
+        "type": "prediction",
+        "period": next_period,
+        "period_tail": str(next_period)[-3:],
+        "prediction": pred_digit,
+        "predicted_size": pred_size,
+        "predicted_color": pred_color,
+        "confidence": round(conf * 100, 1) if conf <= 1.0 else round(conf, 1),
+        "mode": mode,
+        "last_5": last_5,
+        "digit_acc": accs["digit_acc"],
+        "size_acc": accs["size_acc"],
+        "color_acc": accs["color_acc"],
+        "epsilon": rl_agent.epsilon if rl_agent else 1.0
+    }
 
 @app.get("/api/history")
 async def history(page: int = 1, limit: int = 15):
