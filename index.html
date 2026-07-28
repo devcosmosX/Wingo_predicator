@@ -292,9 +292,9 @@ function updatePrediction(data) {
 async function clientDirectFetchSync() {
     try {
         const ts = Date.now();
-        const res = await fetch(`https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json?ts=${ts}`);
+        const res = await fetch(`https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json?pageSize=20&pageNo=1&ts=${ts}`);
         const json = await res.json();
-        if (json && json.data && json.data.list) {
+        if (json && json.data && json.data.list && json.data.list.length > 0) {
             await fetch('/api/sync', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},

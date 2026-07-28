@@ -25,7 +25,7 @@ if IS_VERCEL or not os.access(BASE_DIR, os.W_OK):
 else:
     DB = os.path.join(BASE_DIR, "wingo.db")
 
-API_URL = "https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json"
+API_URL = "https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json?pageSize=20&pageNo=1"
 
 HEADERS = {
     'accept': 'application/json, text/plain, */*',
@@ -164,7 +164,7 @@ current_pending_pred = None
 def fetch_api():
     ts = int(time.time() * 1000)
     try:
-        r = requests.get(f"{API_URL}?ts={ts}", headers=HEADERS, timeout=8)
+        r = requests.get(f"{API_URL}&ts={ts}", headers=HEADERS, timeout=8)
         data = r.json()
         if data.get("code") == 0 and data.get("data", {}).get("list"):
             return data["data"]["list"]
@@ -330,12 +330,9 @@ def full_historical_analysis_fallback(period_str):
     scores = {}
     for d in range(10):
         score = 0.0
-        # Period ID pattern bonus
         if d == p_sum_mod: score += 2.5
         if d == p_tail_mod: score += 2.0
-        # Frequency bonus
         score += (freqs[d] / total_draws) * 5.0
-        # Overdue digit gap bonus (digits due for a comeback)
         score += min(gaps[d] * 0.1, 3.0)
         scores[d] = score
 
@@ -384,7 +381,6 @@ def predict_next(last_5_digits, period_str):
                 ml_pred = int(np.argmax(probs))
                 ml_conf = float(np.max(probs))
         
-        # Fallback to Full Historical Database Analysis if ML model is training/absent
         if ml_pred is None:
             hist_d, hist_size, hist_color, hist_conf, hist_mode = full_historical_analysis_fallback(clean_period)
             ml_pred = hist_d
@@ -555,6 +551,43 @@ async def sync_draws(request: Request):
                         )
                     except: pass
             conn.commit()
+
+            latest = draws[0]
+            period = str(latest.get("issueNumber", "")).strip()
+            digit = int(latest.get("number", 0))
+            actual_size = "Big" if digit >= 5 else "Small"
+            actual_color = str(latest.get("color", "")).strip().capitalize()
+
+            row = conn.execute(
+                "SELECT id, rl_pred, predicted_size, predicted_color, state_hash FROM predictions WHERE period=? AND actual_digit IS NULL ORDER BY id DESC LIMIT 1",
+                (period,)
+            ).fetchone()
+
+            if row:
+                pred_id, rl_pred_val, pred_size_val, pred_color_val, state_hash = row[0], row[1], row[2], row[3], row[4]
+                if pred_size_val is None and rl_pred_val is not None: pred_size_val = get_size_for_digit(rl_pred_val)
+                if pred_color_val is None and rl_pred_val is not None: pred_color_val = get_color_for_digit(rl_pred_val)
+
+                is_digit_correct = (rl_pred_val == digit) if rl_pred_val is not None else False
+                is_size_correct = (pred_size_val.lower() == actual_size.lower()) if pred_size_val else False
+                
+                if pred_color_val:
+                    if pred_color_val.lower() == actual_color.lower(): is_color_correct = True
+                    elif actual_color.lower() in ('violet', 'red', 'green') and pred_color_val.lower() in actual_color.lower(): is_color_correct = True
+                    else: is_color_correct = False
+                else: is_color_correct = False
+
+                try:
+                    conn.execute(
+                        "UPDATE predictions SET actual_digit=?, is_correct=?, is_size_correct=?, is_color_correct=?, predicted_size=?, predicted_color=?, resolved_at=? WHERE id=?",
+                        (digit, is_digit_correct, is_size_correct, is_color_correct, pred_size_val, pred_color_val, now_str, pred_id)
+                    )
+                    conn.commit()
+                except: pass
+
+                if rl_agent and state_hash and rl_pred_val is not None:
+                    rl_agent.learn(state_hash, rl_pred_val, digit)
+
             conn.close()
             return {"status": "synced", "count": len(draws)}
     except Exception as e:
