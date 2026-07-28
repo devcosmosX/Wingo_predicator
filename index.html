@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WinGo 30S Predictor</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0a0a1a; color: #e0e0e0; min-height: 100vh; }
+.container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+/* Header */
+.header { text-align: center; padding: 30px 0; }
+.header h1 { font-size: 2.2rem; background: linear-gradient(135deg, #00d4ff, #7b2ff7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.header p { color: #888; margin-top: 5px; }
+
+/* Status Bar */
+.status-bar { display: flex; gap: 15px; justify-content: center; margin: 20px 0; flex-wrap: wrap; }
+.stat-card { background: #14142a; border-radius: 12px; padding: 16px 22px; text-align: center; min-width: 130px; border: 1px solid #2a2a4a; }
+.stat-card .label { font-size: 0.72rem; text-transform: uppercase; color: #888; letter-spacing: 1px; }
+.stat-card .value { font-size: 1.5rem; font-weight: bold; margin-top: 4px; }
+.stat-card .value.green { color: #00ff88; }
+.stat-card .value.gold { color: #ffd700; }
+.stat-card .value.blue { color: #00bfff; }
+.stat-card .value.pink { color: #ff6b9d; }
+.stat-card .value.purple { color: #a855f7; }
+
+/* Live Prediction */
+.prediction-card { background: linear-gradient(135deg, #1a1a3e, #2a1a4e); border-radius: 20px; padding: 35px; text-align: center; margin: 25px 0; border: 1px solid #3a2a6e; box-shadow: 0 0 50px rgba(123, 47, 247, 0.15); }
+.prediction-card .label { font-size: 0.85rem; color: #888; text-transform: uppercase; letter-spacing: 2px; }
+.prediction-card .digit { font-size: 6rem; font-weight: 900; line-height: 1; margin: 10px 0; }
+.prediction-card .digit.green { color: #00ff88; }
+.prediction-card .digit.red { color: #ff4444; }
+.prediction-card .digit.violet { color: #a855f7; }
+.prediction-card .digit.pulse { animation: pulse 1.5s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+
+/* Multi-Target Badges */
+.target-badges { display: flex; justify-content: center; gap: 15px; margin: 15px 0; }
+.target-pill { padding: 8px 20px; border-radius: 25px; font-weight: bold; font-size: 1.1rem; border: 1px solid #3a3a6e; letter-spacing: 1px; }
+.target-pill.size-big { background: rgba(0, 212, 255, 0.15); color: #00d4ff; border-color: #00d4ff; }
+.target-pill.size-small { background: rgba(255, 165, 0, 0.15); color: #ffa500; border-color: #ffa500; }
+.target-pill.color-green { background: rgba(0, 255, 136, 0.15); color: #00ff88; border-color: #00ff88; }
+.target-pill.color-red { background: rgba(255, 68, 68, 0.15); color: #ff4444; border-color: #ff4444; }
+.target-pill.color-violet { background: rgba(168, 85, 247, 0.15); color: #a855f7; border-color: #a855f7; }
+
+.prediction-card .meta { display: flex; justify-content: center; gap: 30px; margin: 15px 0; flex-wrap: wrap; }
+.prediction-card .meta span { background: #1a1a3e; padding: 6px 16px; border-radius: 20px; font-size: 0.85rem; border: 1px solid #3a3a6e; }
+.confidence-bar { max-width: 400px; margin: 15px auto; background: #1a1a3e; border-radius: 10px; height: 14px; overflow: hidden; }
+.confidence-fill { height: 100%; background: linear-gradient(90deg, #ff4444, #ffd700, #00ff88); border-radius: 10px; transition: width 0.5s ease; }
+
+/* Recent History Table */
+.history-section { background: #14142a; border-radius: 16px; padding: 25px; margin: 20px 0; border: 1px solid #2a2a4a; }
+.history-section h3 { margin-bottom: 15px; color: #aaa; }
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; padding: 10px 12px; border-bottom: 1px solid #2a2a4a; color: #666; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; }
+td { padding: 10px 12px; border-bottom: 1px solid #1a1a2e; font-size: 0.95rem; }
+tr:hover td { background: #1a1a3e; }
+.digit-badge { display: inline-block; width: 32px; height: 32px; line-height: 32px; text-align: center; border-radius: 50%; font-weight: bold; font-size: 0.9rem; }
+.digit-badge.green { background: #00ff8822; color: #00ff88; }
+.digit-badge.red { background: #ff444422; color: #ff4444; }
+.digit-badge.violet { background: #a855f722; color: #a855f7; }
+.correct { color: #00ff88; font-weight: bold; }
+.wrong { color: #ff4444; font-weight: bold; }
+.dim { color: #555; }
+
+/* Pagination Controls */
+.pagination-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding: 14px 20px; background: #1a1a3e; border-radius: 12px; border: 1px solid #3a3a6e; flex-wrap: wrap; gap: 10px; }
+.page-btn { padding: 8px 22px; border-radius: 8px; border: 1px solid #7b2ff7; background: #2a1a4e; color: #fff; font-weight: bold; cursor: pointer; transition: all 0.2s; font-size: 0.95rem; }
+.page-btn:hover:not(:disabled) { background: #7b2ff7; transform: translateY(-1px); }
+.page-btn:disabled { opacity: 0.4; cursor: not-allowed; border-color: #3a3a6e; background: #14142a; }
+.page-info { font-size: 0.95rem; color: #ccc; font-weight: 500; }
+
+/* Feedback Section */
+.feedback-section { display: none; background: #1a1a3e; border-radius: 16px; padding: 25px; margin: 20px 0; border: 2px solid #ffd700; }
+.feedback-section h3 { color: #ffd700; margin-bottom: 15px; }
+.digit-picker { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.digit-btn { width: 50px; height: 50px; border-radius: 50%; border: 2px solid #3a3a6e; background: #14142a; color: #fff; font-size: 1.3rem; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+.digit-btn:hover { border-color: #ffd700; background: #2a2a4e; transform: scale(1.1); }
+.digit-btn.selected { border-color: #00ff88; background: #00ff8822; }
+
+/* Input bar */
+.input-bar { display: flex; gap: 10px; justify-content: center; margin: 15px 0; flex-wrap: wrap; }
+.input-bar input { padding: 12px 20px; border-radius: 10px; border: 1px solid #3a3a6e; background: #14142a; color: #fff; font-size: 1rem; width: 200px; }
+.input-bar input:focus { outline: none; border-color: #7b2ff7; }
+.input-bar button { padding: 12px 28px; border-radius: 10px; border: none; background: linear-gradient(135deg, #7b2ff7, #00d4ff); color: #fff; font-weight: bold; cursor: pointer; font-size: 1rem; transition: opacity 0.2s; }
+.input-bar button:hover { opacity: 0.85; }
+
+/* Live indicator */
+.live-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #00ff88; margin-right: 6px; animation: blink 1s infinite; }
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+/* Responsive */
+@media (max-width: 600px) {
+    .prediction-card .digit { font-size: 4rem; }
+    .stat-card { min-width: 100px; padding: 12px 16px; }
+    .stat-card .value { font-size: 1.2rem; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>⚡ WinGo 30S Predictor</h1>
+        <p>Advanced AutoML & Q-Learning Long-Term Multi-Accuracy Engine</p>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar" id="statusBar">
+        <div class="stat-card">
+            <div class="label">Status</div>
+            <div class="value blue" id="liveStatus"><span class="live-dot"></span>Live</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Total Records</div>
+            <div class="value gold" id="totalRecordsDisplay">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">🎯 Digit Acc</div>
+            <div class="value green" id="digitAccDisplay">0%</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">📐 Size Acc (Big/Small)</div>
+            <div class="value gold" id="sizeAccDisplay">0%</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">🎨 Color Acc (Red/Green)</div>
+            <div class="value pink" id="colorAccDisplay">0%</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Q-Table States</div>
+            <div class="value purple" id="qTableSize">0</div>
+        </div>
+    </div>
+
+    <!-- Prediction Card -->
+    <div class="prediction-card" id="predictionCard">
+        <div class="label">Auto Multi-Target Prediction for Upcoming Period</div>
+        <div class="digit pulse violet" id="predictedDigit">--</div>
+        
+        <!-- Multi-Target Badges -->
+        <div class="target-badges">
+            <span class="target-pill size-big" id="predictedSizeBadge">SIZE: --</span>
+            <span class="target-pill color-green" id="predictedColorBadge">COLOR: --</span>
+        </div>
+
+        <div style="font-size:1.1rem;color:#ccc;font-weight:600;" id="periodDisplay">Connecting to Live Engine...</div>
+        <div class="meta">
+            <span id="modeDisplay">Engine Mode: --</span>
+            <span id="confDisplay">Confidence: --%</span>
+            <span id="last5Display">Last 5: --</span>
+        </div>
+        <div class="confidence-bar">
+            <div class="confidence-fill" id="confidenceFill" style="width:0%"></div>
+        </div>
+        
+        <!-- Manual Prediction Input -->
+        <div class="input-bar">
+            <input type="text" id="periodInput" placeholder="Period last 3 digits" maxlength="3">
+            <button onclick="manualPredict()">🔮 Test Manual Predict</button>
+        </div>
+    </div>
+
+    <!-- Feedback Section -->
+    <div class="feedback-section" id="feedbackSection">
+        <h3>✏️ Manual Correction Feedback</h3>
+        <p style="margin-bottom:15px;color:#aaa;">Prediction was wrong. What was the actual digit?</p>
+        <div class="digit-picker" id="digitPicker"></div>
+        <div class="input-bar" style="margin-top:15px;">
+            <input type="number" id="feedbackInput" min="0" max="9" placeholder="0-9">
+            <button onclick="submitFeedback()">Submit Correction</button>
+        </div>
+        <p style="color:#666;font-size:0.8rem;margin-top:10px;">Your feedback trains the RL agent to improve</p>
+    </div>
+
+    <!-- History Table with 15 Items Per Page Pagination -->
+    <div class="history-section">
+        <h3>📜 Draw History & Multi-Accuracy Validation (15 Records / Page)</h3>
+        <div style="overflow-x:auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Period</th>
+                        <th>Actual Digit</th>
+                        <th>Color</th>
+                        <th>Size</th>
+                        <th>Predicted (Digit, Size, Color)</th>
+                        <th>Digit Result</th>
+                        <th>Size Result</th>
+                        <th>Color Result</th>
+                    </tr>
+                </thead>
+                <tbody id="historyBody"></tbody>
+            </table>
+        </div>
+
+        <!-- Color-Trading Style Pagination Controls -->
+        <div class="pagination-bar">
+            <button class="page-btn" id="prevPageBtn" onclick="changePage(-1)">◀ Prev Page</button>
+            <span class="page-info" id="pageInfoDisplay">Page 1 of 1 (Showing 0 - 0 of 0 records)</span>
+            <button class="page-btn" id="nextPageBtn" onclick="changePage(1)">Next Page ▶</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+const ws = new WebSocket(`${wsProtocol}//${location.host}/ws`);
+
+let currentPage = 1;
+let totalPages = 1;
+let totalRecords = 0;
+const pageLimit = 15;
+
+let feedbackPeriod = null;
+let feedbackPredicted = null;
+
+// Create digit picker buttons
+for (let i = 0; i < 10; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'digit-btn';
+    btn.textContent = i;
+    btn.onclick = () => submitFeedback(i);
+    document.getElementById('digitPicker').appendChild(btn);
+}
+
+ws.onmessage = (e) => {
+    const data = JSON.parse(e.data);
+    
+    if (data.type === 'prediction') {
+        updatePrediction(data);
+    } else if (data.type === 'result') {
+        if (currentPage === 1) {
+            loadHistory(1);
+        } else {
+            updateStats();
+        }
+    }
+};
+
+ws.onclose = () => {
+    document.getElementById('liveStatus').innerHTML = '❌ Disconnected';
+};
+
+function updatePrediction(data) {
+    const digitEl = document.getElementById('predictedDigit');
+    digitEl.textContent = data.prediction;
+    digitEl.className = 'digit pulse';
+    
+    const colorMap = {0:'violet',1:'green',2:'red',3:'green',4:'red',5:'violet',6:'red',7:'green',8:'red',9:'green'};
+    const cName = colorMap[data.prediction] || 'violet';
+    digitEl.classList.add(cName);
+    
+    // Update Size Badge
+    const sizeBadge = document.getElementById('predictedSizeBadge');
+    sizeBadge.textContent = `SIZE: ${(data.predicted_size || 'BIG').toUpperCase()}`;
+    sizeBadge.className = `target-pill size-${(data.predicted_size || 'big').toLowerCase()}`;
+
+    // Update Color Badge
+    const colorBadge = document.getElementById('predictedColorBadge');
+    colorBadge.textContent = `COLOR: ${(data.predicted_color || 'GREEN').toUpperCase()}`;
+    colorBadge.className = `target-pill color-${(data.predicted_color || 'green').toLowerCase()}`;
+    
+    document.getElementById('periodDisplay').textContent = 
+        `Target Period: ...${data.period_tail} | Last 5 History: [${data.last_5.join(', ')}]`;
+    document.getElementById('modeDisplay').textContent = `Engine Mode: ${data.mode}`;
+    document.getElementById('confDisplay').textContent = `Confidence: ${data.confidence}%`;
+    document.getElementById('confidenceFill').style.width = `${Math.min(data.confidence, 100)}%`;
+    
+    if (data.digit_acc !== undefined) document.getElementById('digitAccDisplay').textContent = `${data.digit_acc}%`;
+    if (data.size_acc !== undefined) document.getElementById('sizeAccDisplay').textContent = `${data.size_acc}%`;
+    if (data.color_acc !== undefined) document.getElementById('colorAccDisplay').textContent = `${data.color_acc}%`;
+}
+
+async function loadHistory(page = 1) {
+    try {
+        currentPage = page;
+        const res = await fetch(`/api/history?page=${page}&limit=${pageLimit}`);
+        const responseData = await res.json();
+        
+        const rows = responseData.data || [];
+        totalRecords = responseData.total_records || 0;
+        totalPages = responseData.total_pages || 1;
+
+        const tbody = document.getElementById('historyBody');
+        tbody.innerHTML = '';
+        
+        const colorMap = {0:'violet',1:'green',2:'red',3:'green',4:'red',5:'violet',6:'red',7:'green',8:'red',9:'green'};
+        
+        rows.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.id = `row-${row.period}`;
+            
+            let predictedText = '-';
+            if (row.predicted !== null && row.predicted !== undefined) {
+                predictedText = `${row.predicted} (${row.predicted_size || '-'}, ${row.predicted_color || '-'})`;
+            }
+            
+            let digitRes = (row.correct_digit === 1 || row.correct_digit === true) ? '<span class="correct">✅ Match</span>' : ((row.correct_digit === 0 || row.correct_digit === false) ? '<span class="wrong">❌ Miss</span>' : '<span class="dim">-</span>');
+            let sizeRes = (row.correct_size === 1 || row.correct_size === true) ? '<span class="correct">✅ Match</span>' : ((row.correct_size === 0 || row.correct_size === false) ? '<span class="wrong">❌ Miss</span>' : '<span class="dim">-</span>');
+            let colorRes = (row.correct_color === 1 || row.correct_color === true) ? '<span class="correct">✅ Match</span>' : ((row.correct_color === 0 || row.correct_color === false) ? '<span class="wrong">❌ Miss</span>' : '<span class="dim">-</span>');
+
+            tr.innerHTML = `
+                <td class="dim">...${String(row.period).slice(-3)}</td>
+                <td><span class="digit-badge ${colorMap[row.digit]||'violet'}">${row.digit}</span></td>
+                <td style="color:${row.color}">${row.color}</td>
+                <td>${row.size}</td>
+                <td><strong>${predictedText}</strong></td>
+                <td>${digitRes}</td>
+                <td>${sizeRes}</td>
+                <td>${colorRes}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        // Update Pagination Controls
+        const startRecord = totalRecords > 0 ? (currentPage - 1) * pageLimit + 1 : 0;
+        const endRecord = Math.min(currentPage * pageLimit, totalRecords);
+
+        document.getElementById('pageInfoDisplay').textContent = 
+            `Page ${currentPage} of ${totalPages} (Showing ${startRecord} - ${endRecord} of ${totalRecords} records)`;
+        
+        document.getElementById('totalRecordsDisplay').textContent = totalRecords;
+        document.getElementById('prevPageBtn').disabled = (currentPage <= 1);
+        document.getElementById('nextPageBtn').disabled = (currentPage >= totalPages);
+
+        updateStats();
+
+    } catch(e) { console.error(e); }
+}
+
+function changePage(delta) {
+    const newPage = currentPage + delta;
+    if (newPage >= 1 && newPage <= totalPages) {
+        loadHistory(newPage);
+    }
+}
+
+async function updateStats() {
+    try {
+        const res = await fetch('/api/stats');
+        const stats = await res.json();
+        document.getElementById('totalRecordsDisplay').textContent = stats.total_results;
+        document.getElementById('digitAccDisplay').textContent = `${stats.digit_accuracy}%`;
+        document.getElementById('sizeAccDisplay').textContent = `${stats.size_accuracy}%`;
+        document.getElementById('colorAccDisplay').textContent = `${stats.color_accuracy}%`;
+        if (stats.rl) {
+            document.getElementById('qTableSize').textContent = stats.rl.q_table_size;
+        }
+    } catch(e) {}
+}
+
+async function manualPredict() {
+    const suffix = document.getElementById('periodInput').value;
+    if (!suffix) { alert('Enter last 3 digits of period'); return; }
+    
+    const res = await fetch('/api/predict', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({period_suffix: suffix})
+    });
+    const data = await res.json();
+    if (data.error) { alert(data.error); return; }
+    
+    updatePrediction({
+        prediction: data.prediction,
+        predicted_size: data.predicted_size,
+        predicted_color: data.predicted_color,
+        confidence: data.confidence,
+        mode: data.mode,
+        last_5: data.last_5,
+        period_tail: data.period_suffix,
+        digit_acc: data.digit_acc,
+        size_acc: data.size_acc,
+        color_acc: data.color_acc
+    });
+}
+
+function submitFeedback(actual) {
+    if (actual === undefined || actual === null) actual = parseInt(document.getElementById('feedbackInput').value);
+    if (isNaN(actual) || actual < 0 || actual > 9) { alert('Enter digit 0-9'); return; }
+    if (!feedbackPeriod || feedbackPredicted === null) return;
+    
+    fetch('/api/feedback', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            period: feedbackPeriod,
+            predicted: feedbackPredicted,
+            actual: actual
+        })
+    });
+    
+    document.getElementById('feedbackSection').style.display = 'none';
+    document.getElementById('feedbackInput').value = '';
+    feedbackPeriod = null;
+    feedbackPredicted = null;
+}
+
+loadHistory(1);
+</script>
+</body>
+</html>
