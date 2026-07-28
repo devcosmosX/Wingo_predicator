@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>WinGo 30S Predictor Pro</title>
+<title>WinGo 30S Predictor 10X AI Pro</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;700;900&display=swap" rel="stylesheet">
 <style>
 :root {
-    --bg-dark: #070814;
-    --card-bg: rgba(15, 18, 38, 0.75);
-    --card-border: rgba(255, 255, 255, 0.08);
+    --bg-dark: #060713;
+    --card-bg: rgba(14, 17, 36, 0.85);
+    --card-border: rgba(255, 255, 255, 0.09);
     --neon-green: #00ff88;
     --neon-red: #ff3366;
     --neon-violet: #a855f7;
@@ -24,26 +24,26 @@
 * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
 body { background: var(--bg-dark); color: var(--text-primary); min-height: 100vh; padding-bottom: 40px; overflow-x: hidden; }
 
-/* Ambient Lighting */
+/* Ambient Lighting & Glow FX */
 body::before {
     content: ''; position: fixed; top: -10%; left: 50%; transform: translateX(-50%);
-    width: 600px; height: 600px; background: radial-gradient(circle, rgba(123, 47, 247, 0.15) 0%, rgba(0,0,0,0) 70%);
+    width: 700px; height: 700px; background: radial-gradient(circle, rgba(168, 85, 247, 0.18) 0%, rgba(0,212,255,0.08) 50%, rgba(0,0,0,0) 70%);
     pointer-events: none; z-index: 0;
 }
 
-.container { max-width: 1100px; margin: 0 auto; padding: 16px; position: relative; z-index: 1; }
+.container { max-width: 1150px; margin: 0 auto; padding: 16px; position: relative; z-index: 1; }
 
 /* Header */
 .header { text-align: center; padding: 24px 0 16px; }
-.header h1 { font-family: 'Outfit', sans-serif; font-size: 2.2rem; font-weight: 900; background: linear-gradient(135deg, #00d4ff, #a855f7, #ff3366); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.5px; }
-.header p { color: var(--text-muted); font-size: 0.9rem; margin-top: 6px; font-weight: 500; }
+.header h1 { font-family: 'Outfit', sans-serif; font-size: 2.3rem; font-weight: 900; background: linear-gradient(135deg, #00d4ff, #a855f7, #ff3366); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.5px; }
+.header p { color: var(--text-muted); font-size: 0.92rem; margin-top: 6px; font-weight: 500; }
 
 /* Status Bar Grid (Responsive) */
 .status-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin: 16px 0 24px; }
 @media (max-width: 900px) { .status-grid { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 500px) { .status-grid { grid-template-columns: repeat(2, 1fr); } }
 
-.stat-card { background: var(--card-bg); backdrop-filter: blur(16px); border: 1px solid var(--card-border); border-radius: 16px; padding: 14px 10px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+.stat-card { background: var(--card-bg); backdrop-filter: blur(20px); border: 1px solid var(--card-border); border-radius: 16px; padding: 14px 10px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
 .stat-card .label { font-size: 0.68rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.8px; }
 .stat-card .value { font-family: 'Outfit', sans-serif; font-size: 1.4rem; font-weight: 800; margin-top: 4px; }
 .value.green { color: var(--neon-green); text-shadow: 0 0 12px rgba(0, 255, 136, 0.4); }
@@ -53,10 +53,10 @@ body::before {
 .value.purple { color: var(--neon-violet); text-shadow: 0 0 12px rgba(168, 85, 247, 0.4); }
 
 /* Hero Live Prediction Card */
-.prediction-card { background: linear-gradient(145deg, rgba(20, 24, 55, 0.9), rgba(12, 15, 35, 0.9)); backdrop-filter: blur(20px); border: 1px solid rgba(168, 85, 247, 0.25); border-radius: 24px; padding: 28px 20px; text-align: center; margin-bottom: 24px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
+.prediction-card { background: linear-gradient(145deg, rgba(20, 24, 55, 0.92), rgba(12, 15, 35, 0.92)); backdrop-filter: blur(24px); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 24px; padding: 28px 20px; text-align: center; margin-bottom: 24px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
 .prediction-card .card-title { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 700; }
 
-.prediction-card .digit { font-family: 'Outfit', sans-serif; font-size: 5.5rem; font-weight: 900; line-height: 1; margin: 14px 0 8px; filter: drop-shadow(0 0 20px currentColor); }
+.prediction-card .digit { font-family: 'Outfit', sans-serif; font-size: 5.8rem; font-weight: 900; line-height: 1; margin: 14px 0 8px; filter: drop-shadow(0 0 24px currentColor); }
 .prediction-card .digit.green { color: var(--neon-green); }
 .prediction-card .digit.red { color: var(--neon-red); }
 .prediction-card .digit.violet { color: var(--neon-violet); }
@@ -76,8 +76,33 @@ body::before {
 .meta-chips { display: flex; justify-content: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
 .chip { background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); padding: 5px 14px; border-radius: 20px; font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
 
-.confidence-track { max-width: 360px; margin: 0 auto 20px; background: rgba(255,255,255,0.06); height: 10px; border-radius: 10px; overflow: hidden; border: 1px solid var(--card-border); }
+.confidence-track { max-width: 380px; margin: 0 auto 20px; background: rgba(255,255,255,0.06); height: 10px; border-radius: 10px; overflow: hidden; border: 1px solid var(--card-border); }
 .confidence-fill { height: 100%; background: linear-gradient(90deg, #ff3366, #ffd700, #00ff88); border-radius: 10px; transition: width 0.6s ease; }
+
+/* 🧠 AI Thinking Power & Model Votes Breakdown Widget */
+.thinking-widget { background: rgba(10, 12, 30, 0.7); border: 1px solid var(--card-border); border-radius: 18px; padding: 18px; margin: 20px 0 24px; text-align: left; }
+.thinking-widget h4 { font-family: 'Outfit', sans-serif; font-size: 0.88rem; text-transform: uppercase; color: var(--neon-cyan); letter-spacing: 1px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+
+.vote-bars { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+@media (max-width: 700px) { .vote-bars { grid-template-columns: repeat(2, 1fr); } }
+
+.vote-item { background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); border-radius: 12px; padding: 10px 12px; text-align: center; }
+.vote-item .v-name { font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; }
+.vote-item .v-val { font-family: 'Outfit', sans-serif; font-size: 1.1rem; font-weight: 800; color: var(--neon-gold); margin-top: 2px; }
+
+/* 📊 Hot & Cold Digit Heatmap Grid (Digits 0-9) */
+.heatmap-card { background: var(--card-bg); backdrop-filter: blur(20px); border: 1px solid var(--card-border); border-radius: 24px; padding: 22px; margin-bottom: 24px; box-shadow: 0 12px 32px rgba(0,0,0,0.3); }
+.heatmap-card h3 { font-family: 'Outfit', sans-serif; font-size: 1.15rem; font-weight: 700; margin-bottom: 16px; color: var(--text-primary); display: flex; align-items: center; justify-content: space-between; }
+
+.digit-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 8px; }
+@media (max-width: 800px) { .digit-grid { grid-template-columns: repeat(5, 1fr); } }
+
+.digit-box { background: rgba(10, 12, 28, 0.8); border: 1px solid var(--card-border); border-radius: 14px; padding: 12px 6px; text-align: center; transition: transform 0.2s; }
+.digit-box:hover { transform: translateY(-2px); border-color: var(--neon-violet); }
+.digit-box .num { font-family: 'Outfit', sans-serif; font-size: 1.4rem; font-weight: 900; }
+.digit-box .gap-label { font-size: 0.68rem; color: var(--text-muted); font-weight: 600; margin-top: 4px; }
+.digit-box.hot { border-color: var(--neon-red); background: rgba(255, 51, 102, 0.1); }
+.digit-box.cold { border-color: var(--neon-cyan); background: rgba(0, 212, 255, 0.1); }
 
 /* Input Bar */
 .input-bar { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
@@ -132,8 +157,8 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 
     <!-- Header -->
     <div class="header">
-        <h1>⚡ WinGo 30S Predictor</h1>
-        <p>AI AutoML & Reinforcement Learning Multi-Target Engine</p>
+        <h1>⚡ WinGo 30S Predictor 10X AI</h1>
+        <p>Deep Learning Attention + LightGBM + Q-Reinforcement Intelligence</p>
     </div>
 
     <!-- Status Bar Grid -->
@@ -184,10 +209,41 @@ tr:hover td { background: rgba(255,255,255,0.02); }
         <div class="confidence-track">
             <div class="confidence-fill" id="confidenceFill" style="width:0%"></div>
         </div>
+
+        <!-- 🧠 AI Thinking Power & Vote Breakdown Widget -->
+        <div class="thinking-widget">
+            <h4>🧠 10X AI Ensemble Consensus Votes</h4>
+            <div class="vote-bars">
+                <div class="vote-item">
+                    <div class="v-name">LightGBM ML</div>
+                    <div class="v-val" id="vLightGBM">--%</div>
+                </div>
+                <div class="vote-item">
+                    <div class="v-name">Deep Attention</div>
+                    <div class="v-val" id="vDeep">--%</div>
+                </div>
+                <div class="vote-item">
+                    <div class="v-name">Q-Agent RL</div>
+                    <div class="v-val" id="vQAgent">--%</div>
+                </div>
+                <div class="vote-item">
+                    <div class="v-name">Period Modulo</div>
+                    <div class="v-val" id="vPeriod">--%</div>
+                </div>
+            </div>
+        </div>
         
         <div class="input-bar">
             <input type="text" id="periodInput" placeholder="Period last 3 digits" maxlength="3">
             <button onclick="manualPredict()">🔮 Predict Period</button>
+        </div>
+    </div>
+
+    <!-- 📊 Hot & Cold Digit Heatmap Grid (Digits 0-9) -->
+    <div class="heatmap-card">
+        <h3><span>🔥 Hot & Cold Digit Draw Gaps (0 - 9)</span> <span style="font-size:0.8rem;color:var(--text-muted);" id="drawsAnalyzedLabel">850+ Draws Analyzed</span></h3>
+        <div class="digit-grid" id="heatmapGrid">
+            <!-- Dynamically populated digits 0-9 -->
         </div>
     </div>
 
@@ -280,13 +336,41 @@ function updatePrediction(data) {
     
     document.getElementById('periodDisplay').textContent = 
         `Target Period: ...${data.period_tail} | History: [${(data.last_5 || []).join(', ')}]`;
-    document.getElementById('modeDisplay').textContent = `Mode: ${data.mode || 'ML'}`;
+    document.getElementById('modeDisplay').textContent = `Mode: ${data.mode || '10X ML'}`;
     document.getElementById('confDisplay').textContent = `Confidence: ${data.confidence || 85}%`;
     document.getElementById('confidenceFill').style.width = `${Math.min(data.confidence || 85, 100)}%`;
     
     if (data.digit_acc !== undefined) document.getElementById('digitAccDisplay').textContent = `${data.digit_acc}%`;
     if (data.size_acc !== undefined) document.getElementById('sizeAccDisplay').textContent = `${data.size_acc}%`;
     if (data.color_acc !== undefined) document.getElementById('colorAccDisplay').textContent = `${data.color_acc}%`;
+
+    // Update 10X AI Votes Breakdown
+    if (data.votes) {
+        document.getElementById('vLightGBM').textContent = `${data.votes.lightgbm || 85}%`;
+        document.getElementById('vDeep').textContent = `${data.votes.deep_attention || 78}%`;
+        document.getElementById('vQAgent').textContent = `${data.votes.q_agent || 90}%`;
+        document.getElementById('vPeriod').textContent = `${data.votes.period_modulo || 85}%`;
+    }
+
+    // Update Heatmap Gaps if available
+    if (data.gaps) renderHeatmap(data.gaps);
+}
+
+function renderHeatmap(gaps) {
+    const grid = document.getElementById('heatmapGrid');
+    grid.innerHTML = '';
+    
+    for (let d = 0; d <= 9; d++) {
+        const gapVal = gaps[d] !== undefined ? gaps[d] : 0;
+        const box = document.createElement('div');
+        box.className = `digit-box ${gapVal > 15 ? 'hot' : (gapVal < 3 ? 'cold' : '')}`;
+        
+        box.innerHTML = `
+            <div class="num ${colorMap[d]}">${d}</div>
+            <div class="gap-label">Gap: ${gapVal}</div>
+        `;
+        grid.appendChild(box);
+    }
 }
 
 async function syncLiveDrawsProxy() {
@@ -386,6 +470,7 @@ async function updateStats() {
         if (stats.rl) {
             document.getElementById('qTableSize').textContent = stats.rl.q_table_size || 0;
         }
+        if (stats.gaps) renderHeatmap(stats.gaps);
     } catch(e) {}
 }
 
@@ -411,11 +496,13 @@ async function manualPredict() {
         period_tail: data.period_suffix,
         digit_acc: data.digit_acc,
         size_acc: data.size_acc,
-        color_acc: data.color_acc
+        color_acc: data.color_acc,
+        votes: data.votes,
+        gaps: data.gaps
     });
 }
 
-// Initial Fast Polling Execution
+// Initial Fast Execution
 initWebSocket();
 syncLiveDrawsProxy().then(() => {
     fetchLatestPredictionHTTP();

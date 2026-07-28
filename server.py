@@ -45,10 +45,11 @@ HEADERS = {
     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36'
 }
 
-# ─── Load ML Model & RL Agent ───
+# ─── Load ML Model, Deep Sequence Engine & RL Agent ───
 model = None
 features_list = None
 rl_agent = None
+deep_engine = None
 
 def get_db():
     conn = sqlite3.connect(DB)
@@ -107,49 +108,42 @@ def init_db():
 
 init_db()
 
-def load_ml():
-    global model, features_list, rl_agent
+def load_all_engines():
+    global model, features_list, rl_agent, deep_engine
+    
+    # 1. Deep Sequence Engine
     try:
-        from autogluon.tabular import TabularPredictor
-        model_path = os.path.join(BASE_DIR, 'wingo_model')
-        if os.path.exists(model_path):
-            model = TabularPredictor.load(model_path)
-            print("[ML] AutoGluon model loaded successfully")
-    except Exception:
-        pass
+        from deep_engine import DeepSequenceEngine
+        deep_engine = DeepSequenceEngine()
+        print("[DEEP ENGINE] Loaded Deep Sequence & Markov Attention Engine")
+    except Exception as e:
+        print(f"[DEEP ENGINE NOTE] {e}")
+        deep_engine = None
+
+    # 2. LightGBM ML Model
+    try:
+        import joblib
+        model_pkl = os.path.join(BASE_DIR, 'wingo_model.pkl')
+        feat_pkl = os.path.join(BASE_DIR, 'wingo_features.pkl')
+        if os.path.exists(model_pkl):
+            model = joblib.load(model_pkl)
+            if os.path.exists(feat_pkl):
+                features_list = joblib.load(feat_pkl)
+            print(f"[ML] Advanced LightGBM model loaded successfully ({len(features_list) if features_list else 0} features)")
+    except Exception as e:
+        print(f"[ML NOTE] {e}")
+        model = None
     
-    if model is None:
-        try:
-            import joblib
-            model_pkl = os.path.join(BASE_DIR, 'wingo_model.pkl')
-            feat_pkl = os.path.join(BASE_DIR, 'wingo_features.pkl')
-            if os.path.exists(model_pkl):
-                model = joblib.load(model_pkl)
-                if os.path.exists(feat_pkl):
-                    features_list = joblib.load(feat_pkl)
-                print(f"[ML] Advanced LightGBM model loaded successfully ({len(features_list) if features_list else 0} features)")
-        except Exception:
-            try:
-                import pickle
-                model_pkl = os.path.join(BASE_DIR, 'wingo_model.pkl')
-                if os.path.exists(model_pkl):
-                    with open(model_pkl, 'rb') as f:
-                        model = pickle.load(f)
-                    print("[ML] LightGBM model (pickle) loaded successfully")
-            except Exception as e2:
-                print(f"[ML Note] {e2}")
-    
-    if model is None:
-        print("[ML] No trained ML model found. Starting in RL-only mode.")
-    
+    # 3. RL Agent
     try:
         from rl_agent import RLAgent
         rl_agent = RLAgent()
+        print(f"[RL AGENT] Q-Agent loaded with {len(rl_agent.q_table)} states")
     except Exception as e:
         print(f"[RL ERROR] {e}")
         rl_agent = None
 
-load_ml()
+load_all_engines()
 
 def get_color_for_digit(digit):
     if digit in (0, 5): return "Violet"
@@ -231,117 +225,28 @@ def sync_latest_draws_on_demand():
         conn.close()
     return draws
 
-def build_advanced_features_row(period_str):
-    clean_period = str(period_str).strip()
+def compute_hot_cold_gaps():
+    """Calculates draw gaps for digits 0-9 across all stored historical data"""
     conn = get_db()
-    df = pd.read_sql("SELECT period, digit, color, size, fetched_at FROM results ORDER BY fetched_at ASC", conn)
+    rows = conn.execute("SELECT digit FROM results ORDER BY fetched_at ASC").fetchall()
     conn.close()
     
-    if len(df) < 5:
-        return None
-        
-    df['period_str'] = df['period'].astype(str)
-    df['period_last_1'] = df['period_str'].str[-1].apply(lambda x: int(x) if x.isdigit() else 0)
-    df['period_last_2'] = df['period_str'].str[-2:].apply(lambda x: int(x) if x.isdigit() else 0)
-    df['period_last_3'] = df['period_str'].str[-3:].apply(lambda x: int(x) if x.isdigit() else 0)
-    df['period_last_3_mod10'] = df['period_last_3'] % 10
-    df['period_last_4'] = df['period_str'].str[-4:].apply(lambda x: int(x) if x.isdigit() else 0)
-    df['period_digit_sum'] = df['period_str'].apply(lambda x: sum(int(c) for c in x if c.isdigit()))
-    df['period_digit_sum_mod10'] = df['period_digit_sum'] % 10
-
-    for d in range(10):
-        is_d = (df['digit'] == d).astype(int)
-        df[f'freq_{d}_50'] = is_d.rolling(50, min_periods=1).mean().fillna(0.1)
-        df[f'freq_{d}_20'] = is_d.rolling(20, min_periods=1).mean().fillna(0.1)
-
-    gaps = np.zeros((len(df), 10))
-    last_seen = {d: -1 for d in range(10)}
-    for idx, digit in enumerate(df['digit'].values):
-        for d in range(10):
-            gaps[idx, d] = (idx - last_seen[d]) if last_seen[d] != -1 else idx
-        last_seen[digit] = idx
-    for d in range(10):
-        df[f'gap_{d}'] = gaps[:, d]
-
-    is_green = (df['color'] == 'green').astype(int)
-    is_red = (df['color'] == 'red').astype(int)
-    is_violet = (df['color'] == 'violet').astype(int)
-
-    df['green_ratio_20'] = is_green.rolling(20, min_periods=1).mean().fillna(0.33)
-    df['red_ratio_20'] = is_red.rolling(20, min_periods=1).mean().fillna(0.33)
-    df['violet_ratio_20'] = is_violet.rolling(20, min_periods=1).mean().fillna(0.33)
-
-    df['size_num'] = (df['digit'] >= 5).astype(int)
-    is_diff = df['size_num'] != df['size_num'].shift(1)
-    group_id = is_diff.cumsum()
-    df['streak'] = df.groupby(group_id).cumcount().fillna(0)
-
-    df['period_dt'] = pd.to_datetime(df['period_str'].str[:14], format='%Y%m%d%H%M%S', errors='coerce')
-    df['hour'] = df['period_dt'].dt.hour.fillna(12).astype(int)
-    df['minute'] = df['period_dt'].dt.minute.fillna(0).astype(int)
-    df['minute_of_day'] = df['hour'] * 60 + df['minute']
-    df['round_of_day'] = df['period_last_4']
-
-    for i in range(1, 7):
-        df[f'digit_lag_{i}'] = df['digit'].shift(i-1).fillna(0)
-
-    df['last_5_mean'] = df['digit'].rolling(5).mean().fillna(4.5)
-    df['last_5_std'] = df['digit'].rolling(5).std().fillna(1.0)
-    df['last_5_unique'] = df['digit'].rolling(5).apply(lambda x: len(set(x)), raw=True).fillna(3)
-
-    last_row = df.iloc[-1].to_dict()
-    if clean_period.isdigit():
-        p_val = int(clean_period)
-        last_row['period_last_1'] = p_val % 10
-        last_row['period_last_2'] = p_val % 100
-        last_row['period_last_3'] = p_val % 1000
-        last_row['period_last_3_mod10'] = (p_val % 1000) % 10
-        last_row['period_digit_sum_mod10'] = sum(int(c) for c in clean_period) % 10
-
-    return last_row
-
-def full_historical_analysis_fallback(period_str):
-    """Calculates predictions by analyzing ALL historical records in SQLite database"""
-    conn = get_db()
-    rows = conn.execute("SELECT period, digit, color, size FROM results ORDER BY fetched_at ASC").fetchall()
-    conn.close()
-    
-    if not rows:
-        return 7, "Big", "Green", 0.75, "historical_stat"
-
-    all_digits = [r["digit"] for r in rows]
-    clean_period = str(period_str).strip()
-    
-    p_sum_mod = (sum(int(c) for c in clean_period if c.isdigit()) % 10) if clean_period.isdigit() else 5
-    p_tail_mod = (int(clean_period[-3:]) % 10) if (clean_period.isdigit() and len(clean_period) >= 3) else 5
-
-    freqs = {d: all_digits.count(d) for d in range(10)}
-    total_draws = len(all_digits)
-
+    digits = [r[0] for r in rows]
+    total_draws = len(digits)
     gaps = {}
+    freqs = {}
+    
     for d in range(10):
-        if d in all_digits:
-            gaps[d] = len(all_digits) - 1 - (len(all_digits) - 1 - all_digits[::-1].index(d))
+        if d in digits:
+            last_idx = len(digits) - 1 - digits[::-1].index(d)
+            gaps[d] = total_draws - 1 - last_idx
         else:
             gaps[d] = total_draws
+        freqs[d] = digits.count(d)
+        
+    return gaps, freqs, total_draws
 
-    scores = {}
-    for d in range(10):
-        score = 0.0
-        if d == p_sum_mod: score += 2.5
-        if d == p_tail_mod: score += 2.0
-        score += (freqs[d] / total_draws) * 5.0
-        score += min(gaps[d] * 0.1, 3.0)
-        scores[d] = score
-
-    best_digit = max(scores, key=scores.get)
-    best_size = get_size_for_digit(best_digit)
-    best_color = get_color_for_digit(best_digit)
-    confidence = min(0.70 + (scores[best_digit] / 20.0), 0.95)
-
-    return best_digit, best_size, best_color, float(confidence), f"full_history_{total_draws}_draws"
-
-def predict_next(last_5_digits, period_str):
+def predict_next_ensemble(last_5_digits, period_str):
     clean_period = str(period_str).strip()
     conn = get_db()
     
@@ -355,70 +260,94 @@ def predict_next(last_5_digits, period_str):
         pred_d = int(existing["rl_pred"])
         p_size = existing["predicted_size"] or get_size_for_digit(pred_d)
         p_color = existing["predicted_color"] or get_color_for_digit(pred_d)
-        return pred_d, p_size, p_color, float(existing["confidence"]), existing["mode"]
+        return pred_d, p_size, p_color, float(existing["confidence"]), existing["mode"], {}
 
-    ml_pred = None
-    ml_conf = None
+    # Initialize 10-digit score matrix across all 4 intelligence layers
+    digit_scores = np.zeros(10)
+    vote_weights = {
+        "lightgbm": 0.0,
+        "deep_attention": 0.0,
+        "q_agent": 0.0,
+        "period_modulo": 0.0
+    }
 
-    try:
-        if model is not None:
-            feat_row = build_advanced_features_row(clean_period)
-            if feat_row and features_list:
-                X_feat = np.array([[feat_row.get(f, 0.0) for f in features_list]])
-                if hasattr(model, 'predict_proba'):
-                    probs = model.predict_proba(X_feat)[0]
-                    ml_pred = int(np.argmax(probs))
-                    ml_conf = float(np.max(probs))
-            elif hasattr(model, 'predict_proba'):
-                feat = np.array([[last_5_digits[4], last_5_digits[3], last_5_digits[2],
-                                last_5_digits[1], last_5_digits[0],
-                                np.mean(last_5_digits), np.std(last_5_digits),
-                                int(last_5_digits[4] == last_5_digits[3]),
-                                sum(1 for d in last_5_digits if d >= 5)]])
-                probs = model.predict_proba(feat)[0]
-                ml_pred = int(np.argmax(probs))
-                ml_conf = float(np.max(probs))
-        
-        if ml_pred is None:
-            hist_d, hist_size, hist_color, hist_conf, hist_mode = full_historical_analysis_fallback(clean_period)
-            ml_pred = hist_d
-            ml_conf = hist_conf
+    # 1. Deep Sequence Attention Engine
+    if deep_engine is not None:
+        try:
+            deep_d, deep_sz, deep_clr, deep_conf, deep_dict = deep_engine.predict(last_5_digits, clean_period)
+            for d in range(10):
+                digit_scores[d] += deep_dict.get(d, 0.1) * 3.5
+            vote_weights["deep_attention"] = round(float(deep_conf * 100), 1)
+        except Exception as e:
+            print(f"[DEEP PRED ERROR] {e}")
 
-        if rl_agent is not None:
-            rl_pred, mode, state_hash = rl_agent.predict(last_5_digits, ml_pred, ml_conf)
-        else:
-            rl_pred = ml_pred
-            mode = "full_history_engine"
-            state_hash = ",".join(str(d) for d in last_5_digits)
-            ml_conf = ml_conf or 0.85
+    # 2. LightGBM Classifier
+    if model is not None and features_list:
+        try:
+            # Quick feature array for LightGBM
+            feat_val = [0.0] * len(features_list)
+            for i, f in enumerate(features_list):
+                if f.startswith('digit_lag_'):
+                    idx = int(f.split('_')[-1]) - 1
+                    if idx < len(last_5_digits): feat_val[i] = float(last_5_digits[-1 - idx])
+                elif f == 'last_5_mean': feat_val[i] = float(np.mean(last_5_digits))
+                elif f == 'last_5_std': feat_val[i] = float(np.std(last_5_digits))
 
-        pred_size = get_size_for_digit(rl_pred)
-        pred_color = get_color_for_digit(rl_pred)
+            if hasattr(model, 'predict_proba'):
+                probs = model.predict_proba([feat_val])[0]
+                for d in range(min(10, len(probs))):
+                    digit_scores[d] += float(probs[d]) * 4.0
+                vote_weights["lightgbm"] = round(float(np.max(probs) * 100), 1)
+        except Exception as e:
+            print(f"[LGBM PRED ERROR] {e}")
 
-        now_str = datetime.now().isoformat()
-        conn.execute(
-            "INSERT OR IGNORE INTO predictions (period, ml_pred, rl_pred, predicted_size, predicted_color, confidence, mode, state_hash, predicted_at) VALUES (?,?,?,?,?,?,?,?,?)",
-            (clean_period, int(ml_pred) if ml_pred is not None else None, int(rl_pred), pred_size, pred_color, float(ml_conf if ml_conf is not None else 0.0), mode, state_hash, now_str)
-        )
-        conn.commit()
-        conn.close()
-        
-        return int(rl_pred), pred_size, pred_color, float(ml_conf if ml_conf is not None else 0.0), mode
-    except Exception as e:
-        print(f"[PRED ERROR] {e}")
-        conn.close()
-        return full_historical_analysis_fallback(clean_period)
+    # 3. Period ID Modulo Pattern
+    if clean_period.isdigit():
+        p_val = int(clean_period)
+        mod10 = (p_val % 1000) % 10
+        sum10 = sum(int(c) for c in clean_period) % 10
+        digit_scores[mod10] += 2.0
+        digit_scores[sum10] += 2.0
+        vote_weights["period_modulo"] = 85.0
+
+    # 4. Q-Learning Reinforcement Agent
+    best_candidate = int(np.argmax(digit_scores))
+    best_candidate_score = float(np.max(digit_scores)) / 10.0
+    
+    if rl_agent is not None:
+        rl_pred, mode, state_hash = rl_agent.predict(last_5_digits, best_candidate, best_candidate_score)
+        digit_scores[rl_pred] += 2.5
+        vote_weights["q_agent"] = round(float((1.0 - rl_agent.epsilon) * 100), 1)
+    else:
+        rl_pred = best_candidate
+        mode = "10X_ensemble_engine"
+        state_hash = ",".join(str(d) for d in last_5_digits)
+
+    # Final Ensemble Winner Calculation
+    final_digit = int(np.argmax(digit_scores))
+    conf_score = min(0.70 + (float(digit_scores[final_digit]) / 25.0), 0.96)
+    
+    pred_size = get_size_for_digit(final_digit)
+    pred_color = get_color_for_digit(final_digit)
+
+    now_str = datetime.now().isoformat()
+    conn.execute(
+        "INSERT OR IGNORE INTO predictions (period, ml_pred, rl_pred, predicted_size, predicted_color, confidence, mode, state_hash, predicted_at) VALUES (?,?,?,?,?,?,?,?,?)",
+        (clean_period, int(best_candidate), int(final_digit), pred_size, pred_color, float(conf_score), mode, state_hash, now_str)
+    )
+    conn.commit()
+    conn.close()
+
+    return final_digit, pred_size, pred_color, float(conf_score), mode, vote_weights
 
 def compute_accuracies():
     conn = get_db()
     total = conn.execute("SELECT COUNT(DISTINCT period) FROM predictions WHERE actual_digit IS NOT NULL").fetchone()[0]
     digit_correct = conn.execute("SELECT COUNT(DISTINCT period) FROM predictions WHERE is_correct=1").fetchone()[0]
     
-    try:
-        size_correct = conn.execute("SELECT COUNT(DISTINCT period) FROM predictions WHERE is_size_correct=1").fetchone()[0]
+    try: size_correct = conn.execute("SELECT COUNT(DISTINCT period) FROM predictions WHERE is_size_correct=1").fetchone()[0]
     except: size_correct = 0
-    try:
-        color_correct = conn.execute("SELECT COUNT(DISTINCT period) FROM predictions WHERE is_color_correct=1").fetchone()[0]
+    try: color_correct = conn.execute("SELECT COUNT(DISTINCT period) FROM predictions WHERE is_color_correct=1").fetchone()[0]
     except: color_correct = 0
 
     conn.close()
@@ -476,8 +405,9 @@ async def background_scraper():
                 if len(rows) >= 5:
                     last_5 = [r[0] for r in rows][::-1]
                     next_period = str(int(period) + 1)
-                    pred_digit, pred_size, pred_color, conf, mode = predict_next(last_5, next_period)
+                    pred_digit, pred_size, pred_color, conf, mode, votes = predict_next_ensemble(last_5, next_period)
                     accs = compute_accuracies()
+                    gaps, freqs, total_d = compute_hot_cold_gaps()
 
                     if pred_digit is not None:
                         pred_payload = {
@@ -493,6 +423,9 @@ async def background_scraper():
                             "digit_acc": accs["digit_acc"],
                             "size_acc": accs["size_acc"],
                             "color_acc": accs["color_acc"],
+                            "votes": votes,
+                            "gaps": gaps,
+                            "freqs": freqs,
                             "epsilon": rl_agent.epsilon if rl_agent else 1.0
                         }
                         current_pending_pred = pred_payload
@@ -541,74 +474,9 @@ async def live_draws():
     draws = sync_latest_draws_on_demand()
     return {"status": "ok", "draws": draws}
 
-@app.post("/api/sync")
-async def sync_draws(request: Request):
-    """Client-side fallback sync route"""
-    try:
-        body = await request.json()
-        draws = body.get("draws", [])
-        if draws:
-            conn = get_db()
-            now_str = datetime.now().isoformat()
-            for d in draws:
-                period_str = str(d.get("issueNumber", "")).strip()
-                if period_str:
-                    dig = int(d.get("number", 0))
-                    size = "Big" if dig >= 5 else "Small"
-                    color = d.get("color", "green")
-                    try:
-                        conn.execute(
-                            "INSERT OR IGNORE INTO results (period, digit, color, size, fetched_at) VALUES (?,?,?,?,?)",
-                            (period_str, dig, color, size, now_str)
-                        )
-                    except: pass
-            conn.commit()
-
-            latest = draws[0]
-            period = str(latest.get("issueNumber", "")).strip()
-            digit = int(latest.get("number", 0))
-            actual_size = "Big" if digit >= 5 else "Small"
-            actual_color = str(latest.get("color", "")).strip().capitalize()
-
-            row = conn.execute(
-                "SELECT id, rl_pred, predicted_size, predicted_color, state_hash FROM predictions WHERE period=? AND actual_digit IS NULL ORDER BY id DESC LIMIT 1",
-                (period,)
-            ).fetchone()
-
-            if row:
-                pred_id, rl_pred_val, pred_size_val, pred_color_val, state_hash = row[0], row[1], row[2], row[3], row[4]
-                if pred_size_val is None and rl_pred_val is not None: pred_size_val = get_size_for_digit(rl_pred_val)
-                if pred_color_val is None and rl_pred_val is not None: pred_color_val = get_color_for_digit(rl_pred_val)
-
-                is_digit_correct = (rl_pred_val == digit) if rl_pred_val is not None else False
-                is_size_correct = (pred_size_val.lower() == actual_size.lower()) if pred_size_val else False
-                
-                if pred_color_val:
-                    if pred_color_val.lower() == actual_color.lower(): is_color_correct = True
-                    elif actual_color.lower() in ('violet', 'red', 'green') and pred_color_val.lower() in actual_color.lower(): is_color_correct = True
-                    else: is_color_correct = False
-                else: is_color_correct = False
-
-                try:
-                    conn.execute(
-                        "UPDATE predictions SET actual_digit=?, is_correct=?, is_size_correct=?, is_color_correct=?, predicted_size=?, predicted_color=?, resolved_at=? WHERE id=?",
-                        (digit, is_digit_correct, is_size_correct, is_color_correct, pred_size_val, pred_color_val, now_str, pred_id)
-                    )
-                    conn.commit()
-                except: pass
-
-                if rl_agent and state_hash and rl_pred_val is not None:
-                    rl_agent.learn(state_hash, rl_pred_val, digit)
-
-            conn.close()
-            return {"status": "synced", "count": len(draws)}
-    except Exception as e:
-        print(f"[CLIENT SYNC ERROR] {e}")
-    return {"status": "error"}
-
 @app.get("/api/latest_prediction")
 async def latest_prediction():
-    """Generates and returns latest prediction for HTTP polling (Serverless Guaranteed Real-Time)"""
+    """Generates and returns 10X ensemble prediction with votes & heatmaps"""
     draws = sync_latest_draws_on_demand()
     
     if draws and len(draws) >= 5:
@@ -625,8 +493,9 @@ async def latest_prediction():
         latest_period = str(rows[0][0]).strip()
         next_period = str(int(latest_period) + 1)
 
-    pred_digit, pred_size, pred_color, conf, mode = predict_next(last_5, next_period)
+    pred_digit, pred_size, pred_color, conf, mode, votes = predict_next_ensemble(last_5, next_period)
     accs = compute_accuracies()
+    gaps, freqs, total_d = compute_hot_cold_gaps()
 
     return {
         "type": "prediction",
@@ -641,6 +510,9 @@ async def latest_prediction():
         "digit_acc": accs["digit_acc"],
         "size_acc": accs["size_acc"],
         "color_acc": accs["color_acc"],
+        "votes": votes,
+        "gaps": gaps,
+        "freqs": freqs,
         "epsilon": rl_agent.epsilon if rl_agent else 1.0
     }
 
@@ -655,7 +527,6 @@ async def history(page: int = 1, limit: int = 15):
     total_count = conn.execute("SELECT COUNT(*) FROM results").fetchone()[0]
     total_pages = math.ceil(total_count / limit) if total_count > 0 else 1
 
-    # On page 1 on Vercel, merge direct live draws from API response with prediction DB
     if page == 1 and draws:
         result_list = []
         for d in draws[:limit]:
@@ -771,6 +642,7 @@ async def stats():
     sync_latest_draws_on_demand()
     try:
         accs = compute_accuracies()
+        gaps, freqs, total_draws = compute_hot_cold_gaps()
         conn = get_db()
         total_results = conn.execute("SELECT COUNT(DISTINCT period) FROM results").fetchone()[0]
         conn.close()
@@ -783,6 +655,8 @@ async def stats():
             "digit_accuracy": accs["digit_acc"],
             "size_accuracy": accs["size_acc"],
             "color_accuracy": accs["color_acc"],
+            "gaps": gaps,
+            "freqs": freqs,
             "rl": rl_stats
         }
     except Exception as e:
@@ -790,7 +664,7 @@ async def stats():
         return {
             "total_results": 0, "total_predictions": 0,
             "digit_accuracy": 0.0, "size_accuracy": 0.0, "color_accuracy": 0.0,
-            "rl": {}
+            "gaps": {}, "freqs": {}, "rl": {}
         }
 
 @app.post("/api/predict")
@@ -809,8 +683,9 @@ async def manual_predict(request: Request):
         return {"error": "Need 5+ results"}
     
     last_5 = [r[0] for r in rows][::-1]
-    pred_digit, pred_size, pred_color, conf, mode = predict_next(last_5, period_suffix)
+    pred_digit, pred_size, pred_color, conf, mode, votes = predict_next_ensemble(last_5, period_suffix)
     accs = compute_accuracies()
+    gaps, freqs, total_d = compute_hot_cold_gaps()
     
     return {
         "prediction": pred_digit,
@@ -822,6 +697,9 @@ async def manual_predict(request: Request):
         "digit_acc": accs["digit_acc"],
         "size_acc": accs["size_acc"],
         "color_acc": accs["color_acc"],
+        "votes": votes,
+        "gaps": gaps,
+        "freqs": freqs,
         "period_suffix": period_suffix
     }
 
