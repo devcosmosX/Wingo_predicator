@@ -289,24 +289,17 @@ function updatePrediction(data) {
     if (data.color_acc !== undefined) document.getElementById('colorAccDisplay').textContent = `${data.color_acc}%`;
 }
 
-async function clientDirectFetchSync() {
+async function syncLiveDrawsProxy() {
     try {
         const ts = Date.now();
-        const res = await fetch(`https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json?pageSize=20&pageNo=1&ts=${ts}`);
-        const json = await res.json();
-        if (json && json.data && json.data.list && json.data.list.length > 0) {
-            await fetch('/api/sync', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({draws: json.data.list})
-            });
-        }
+        await fetch(`/api/live_draws?_nc=${ts}`);
     } catch(e) {}
 }
 
 async function fetchLatestPredictionHTTP() {
     try {
-        const res = await fetch('/api/latest_prediction');
+        const ts = Date.now();
+        const res = await fetch(`/api/latest_prediction?_nc=${ts}`);
         const data = await res.json();
         if (!data.error) {
             updatePrediction(data);
@@ -317,7 +310,8 @@ async function fetchLatestPredictionHTTP() {
 async function loadHistory(page = 1) {
     try {
         currentPage = page;
-        const res = await fetch(`/api/history?page=${page}&limit=${pageLimit}`);
+        const ts = Date.now();
+        const res = await fetch(`/api/history?page=${page}&limit=${pageLimit}&_nc=${ts}`);
         const responseData = await res.json();
         
         const rows = responseData.data || [];
@@ -329,7 +323,6 @@ async function loadHistory(page = 1) {
         
         if (rows.length === 0) {
             tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;" class="dim-text">Syncing historical records...</td></tr>';
-            await clientDirectFetchSync();
             return;
         }
 
@@ -383,7 +376,8 @@ function changePage(delta) {
 
 async function updateStats() {
     try {
-        const res = await fetch('/api/stats');
+        const ts = Date.now();
+        const res = await fetch(`/api/stats?_nc=${ts}`);
         const stats = await res.json();
         document.getElementById('totalRecordsDisplay').textContent = stats.total_results || 0;
         document.getElementById('digitAccDisplay').textContent = `${stats.digit_accuracy || 0}%`;
@@ -421,20 +415,20 @@ async function manualPredict() {
     });
 }
 
-// Initial Load & Polling setup
+// Initial Fast Polling Execution
 initWebSocket();
-clientDirectFetchSync().then(() => {
+syncLiveDrawsProxy().then(() => {
     fetchLatestPredictionHTTP();
     loadHistory(1);
 });
 
-// Automatic Polling Fallback Every 3s
-setInterval(() => {
-    clientDirectFetchSync();
-    fetchLatestPredictionHTTP();
-    if (currentPage === 1) loadHistory(1);
-    else updateStats();
-}, 3000);
+// Fast Real-Time Polling Every 2 Seconds
+setInterval(async () => {
+    await syncLiveDrawsProxy();
+    await fetchLatestPredictionHTTP();
+    if (currentPage === 1) await loadHistory(1);
+    else await updateStats();
+}, 2000);
 </script>
 </body>
 </html>

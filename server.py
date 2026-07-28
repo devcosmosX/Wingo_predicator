@@ -1,7 +1,7 @@
 import sqlite3, json, time, asyncio, os, sys, math, shutil
 from datetime import datetime
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
@@ -30,7 +30,9 @@ API_URL = "https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.jso
 HEADERS = {
     'accept': 'application/json, text/plain, */*',
     'accept-language': 'en-GB,en;q=0.7',
+    'cache-control': 'no-cache',
     'origin': 'https://www.tirangagame.xyz',
+    'pragma': 'no-cache',
     'priority': 'u=1, i',
     'referer': 'https://www.tirangagame.xyz/',
     'sec-ch-ua': '"Not;A=Brand";v="8", "Chromium";v="150", "Brave";v="150"',
@@ -310,15 +312,12 @@ def full_historical_analysis_fallback(period_str):
     all_digits = [r["digit"] for r in rows]
     clean_period = str(period_str).strip()
     
-    # 1. Period ID digit sum & modulo pattern over all historical rows
     p_sum_mod = (sum(int(c) for c in clean_period if c.isdigit()) % 10) if clean_period.isdigit() else 5
     p_tail_mod = (int(clean_period[-3:]) % 10) if (clean_period.isdigit() and len(clean_period) >= 3) else 5
 
-    # 2. Historical Frequency distribution across ALL data
     freqs = {d: all_digits.count(d) for d in range(10)}
     total_draws = len(all_digits)
 
-    # 3. Hot / Cold Gap analysis (distance since digit was last drawn)
     gaps = {}
     for d in range(10):
         if d in all_digits:
@@ -326,7 +325,6 @@ def full_historical_analysis_fallback(period_str):
         else:
             gaps[d] = total_draws
 
-    # 4. Multi-Score Weighting combining Period ID + All Historical Frequencies + Digit Gaps
     scores = {}
     for d in range(10):
         score = 0.0
@@ -522,12 +520,26 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
+@app.middleware("http")
+async def add_no_cache_headers(request: Request, call_next):
+    response: Response = await call_next(request)
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
 # ─── Routes ───
 @app.get("/")
 async def root():
     html_path = os.path.join(BASE_DIR, "index.html")
     with open(html_path, encoding="utf-8") as f:
         return HTMLResponse(f.read())
+
+@app.get("/api/live_draws")
+async def live_draws():
+    """Proxy endpoint so browser fetches live draws without CORS issues"""
+    draws = sync_latest_draws_on_demand()
+    return {"status": "ok", "draws": draws}
 
 @app.post("/api/sync")
 async def sync_draws(request: Request):
